@@ -2,6 +2,10 @@ module objd;
 import std.c.stdlib;
 import std.stdio;
 
+/* Basic types */
+alias int NSInteger;
+alias uint NSUInteger;
+
 /* Selectors */
 alias string SEL;
 
@@ -42,7 +46,7 @@ public:
             if (cmd == doesNotRecognize) {
                 abort();
             } else {
-                this.msgSend!(void)(doesNotRecognize);
+                this.msgSend!(void)(doesNotRecognize, cmd);
             }
             
             static if (is(T == void))
@@ -56,6 +60,10 @@ public:
             impl(this, cmd, args);
         else
             return impl(this, cmd, args);
+    }
+    
+    string toString () const {
+        return isa.name;
     }
 }
 
@@ -77,13 +85,45 @@ public:
     }
     
     bool addMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
-        writefln("adding method %s", name);
+        writefln("adding method %s to %s", name, this.name);
         if (name in methods)
             return false;
         else {
             methods[name] = cast(IMP)(impl);
             return true;
         }
+    }
+    
+    bool hasMethod (SEL name) const {
+        return !!(name in methods);
+    }
+    
+    int opApply (int delegate (ref Class) dg) {
+        Class cls = this;
+        int result = 0;
+        do {
+            result = dg(cls);
+            if (result)
+                break;
+            
+            cls = cls.superclass;
+        } while (cls !is null);
+        
+        return result;
+    }
+    
+    int opApply (int delegate (ref const(Class)) dg) const {
+        const(Class) *cls = &this;
+        int result = 0;
+        do {
+            result = dg(*cls);
+            if (result)
+                break;
+            
+            cls = &cls.superclass;
+        } while (*cls !is null);
+        
+        return result;
     }
     
     string toString () const {
@@ -121,6 +161,33 @@ static this () {
         return self.isa.name;
     });
     
+    NSObject.isa.addMethod(sel_registerName("doesNotRecognizeSelector:"), function void (id self, SEL cmd, SEL aSelector) {
+        writefln("%s does not recognize selector \"%s\"", self.isa, sel_getName(aSelector));
+        abort();
+    });
+    
+    NSObject.isa.addMethod(sel_registerName("instancesRespondToSelector:"), function bool (id self, SEL cmd, SEL aSelector) {
+        foreach (Class cls; cast(Class)self) {
+            if (cls.hasMethod(aSelector))
+                return true;
+        }
+        
+        return false;
+    });
+    
+    NSObject.isa.addMethod(sel_registerName("isSubclassOfClass:"), function bool (id self, SEL cmd, const Class otherClass) {
+        foreach (const Class cls; cast(Class)self) {
+            if (cls == otherClass)
+                return true;
+        }
+        
+        return false;
+    });
+    
+    NSObject.isa.addMethod(sel_registerName("new"), function id (id self, SEL cmd) {
+        return self.msgSend!(id)("alloc").msgSend!(id)("init");
+    });
+    
     NSObject.isa.addMethod(sel_registerName("superclass"), function Class (id self, SEL cmd) {
         return (cast(Class)self).superclass;
     });
@@ -134,9 +201,69 @@ static this () {
         return self.isa;
     });
     
+    NSObject.addMethod(sel_registerName("doesNotRecognizeSelector:"), function void (id self, SEL cmd, SEL aSelector) {
+        writefln("%s does not recognize selector \"%s\"", self.isa, sel_getName(aSelector));
+        abort();
+    });
+    
     NSObject.addMethod(sel_registerName("finalize"), function void (id self, SEL cmd) {});
+    
+    NSObject.addMethod(sel_registerName("hash"), function NSUInteger (id self, SEL cmd) {
+        return self.toHash();
+    });
     
     NSObject.addMethod(sel_registerName("init"), function id (id self, SEL cmd) {
         return self;
     });
+    
+    NSObject.addMethod(sel_registerName("isEqual:"), function bool (id self, SEL cmd, const id otherObj) {
+        return self == otherObj;
+    });
+    
+    NSObject.addMethod(sel_registerName("isKindOfClass:"), function bool (id self, SEL cmd, const Class otherClass) {
+        foreach (const Class cls; self.isa) {
+            if (cls == otherClass)
+                return true;
+        }
+        
+        return false;
+    });
+    
+    NSObject.addMethod(sel_registerName("isMemberOfClass:"), function bool (id self, SEL cmd, const Class otherClass) {
+        return self.isa == otherClass;
+    });
+    
+    NSObject.addMethod(sel_registerName("isProxy"), function bool (id self, SEL cmd) {
+        return false;
+    });
+    
+    NSObject.addMethod(sel_registerName("respondsToSelector:"), function bool (id self, SEL cmd, SEL aSelector) {
+        foreach (const Class cls; self.isa) {
+            if (cls.hasMethod(aSelector))
+                return true;
+        }
+        
+        return false;
+    });
+    
+    NSObject.addMethod(sel_registerName("self"), function id (id self, SEL cmd) {
+        return self;
+    });
+    
+    NSObject.addMethod(sel_registerName("superclass"), function Class (id self, SEL cmd) {
+        return self.isa.superclass;
+    });
+}
+
+unittest {
+    Class MyClass = new Class("MyClass", NSObject);
+    assert(MyClass.msgSend!Class(sel_registerName("class")) is MyClass);
+    assert(MyClass.msgSend!bool(sel_registerName("isSubclassOfClass:"), NSObject));
+    
+    id obj = MyClass.msgSend!id(sel_registerName("new"));
+    assert(obj !is null);
+    assert(obj.msgSend!bool(sel_registerName("isKindOfClass:"), NSObject));
+    assert(obj.msgSend!bool(sel_registerName("isKindOfClass:"), MyClass));
+    assert(!obj.msgSend!bool(sel_registerName("isMemberOfClass:"), NSObject));
+    assert(obj.msgSend!bool(sel_registerName("isMemberOfClass:"), MyClass));
 }

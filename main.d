@@ -8,7 +8,7 @@ static this () {
 }
 
 void main () {
-    id obj = MyClass.msgSend!(id)("alloc").msgSend!(id)("init");
+    id obj = MyClass.msgSend!(id)("new");
     writefln("%s", obj.msgSend!(string)("description"));
     writefln("%s", MyClass.msgSend!(string)("description"));
 }
