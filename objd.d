@@ -1,10 +1,17 @@
 module objd;
+import std.algorithm;
 import std.c.stdlib;
+import std.contracts;
 import std.stdio;
+import std.string;
 
 /* Basic types */
 alias int NSInteger;
 alias uint NSUInteger;
+alias bool BOOL;
+
+invariant YES = true;
+invariant NO = false;
 
 /* Selectors */
 alias string SEL;
@@ -20,6 +27,33 @@ SEL sel_registerName (string str) {
 /* Messaging */
 alias int function(id, SEL, ...) IMP;
 
+class Method {
+public:
+    immutable SEL selector;
+    TypeInfo returnType;
+    const(TypeInfo)[] argumentTypes;
+    IMP implementation;
+    
+    static Method define(T, A...)(SEL selector, T function (id, SEL, A) impl) {
+        TypeInfo[] argTypes = new TypeInfo[A.length];
+        foreach (i, type; A)
+            argTypes[i] = typeid(type);
+        
+        return new Method(selector, cast(IMP)(impl), typeid(T), argTypes);
+    }
+    
+    this (SEL selector, IMP implementation, TypeInfo returnType, const TypeInfo[] argumentTypes...) {
+        this.selector = selector;
+        this.implementation = implementation;
+        this.returnType = returnType;
+        this.argumentTypes = argumentTypes;
+    }
+    
+    bool opEquals (const Method m) const {
+        return this.selector == m.selector && this.returnType == m.returnType && this.argumentTypes == m.argumentTypes && this.implementation == m.implementation;
+    }
+}
+
 /* Basic OO types */
 class id {
 public:
@@ -28,19 +62,19 @@ public:
     T msgSend(T, A...)(SEL cmd, A args) {
         Class cls = isa;
         
-        IMP invocation = null;
+        Method method = null;
         writefln("invoking method %s", cmd);
         do {
-            auto method = cmd in cls.methods;
-            if (method) {
-                invocation = *method;
+            auto item = cmd in cls.methods;
+            if (item) {
+                method = *item;
                 break;
             }
             
             cls = cls.superclass;
         } while (cls !is null);
         
-        if (!invocation) {
+        if (!method) {
             writefln("couldn't find method %s", cmd);
             auto doesNotRecognize = sel_registerName("doesNotRecognizeSelector:");
             if (cmd == doesNotRecognize) {
@@ -55,14 +89,21 @@ public:
                 return T.init;
         }
         
-        auto impl = cast(T function (id, SEL, A))(invocation);
+        enforce(typeid(T) == method.returnType, format("requested return type %s does not match defined return type %s for method %s", typeid(T), method.returnType, method.selector));
+        enforce(A.length == method.argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", method.selector, A.length, method.argumentTypes.length));
+        
+        foreach (i, type; A) {
+            enforce(typeid(type) == method.argumentTypes[i] || typeid(const type) == method.argumentTypes[i], format("argument %s of type %s does not match defined parameter type %s for method %s", i + 1, typeid(type), method.argumentTypes[i], method.selector));
+        }
+        
+        auto impl = cast(T function (id, SEL, A))(method.implementation);
         static if (is(T == void))
             impl(this, cmd, args);
         else
             return impl(this, cmd, args);
     }
     
-    string toString () const {
+    override string toString () const {
         return isa.name;
     }
 }
@@ -70,7 +111,7 @@ public:
 class Class : id {
 public:
     Class superclass;
-    invariant string name;
+    immutable string name;
     
     this (string name, Class superclass = null, bool allocIsa = true) {
         if (allocIsa) {
@@ -84,20 +125,35 @@ public:
         this.name = name;
     }
     
+    /* Reflection */
     bool addMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
         writefln("adding method %s to %s", name, this.name);
         if (name in methods)
             return false;
         else {
-            methods[name] = cast(IMP)(impl);
+            methods[name] = Method.define(name, impl);
             return true;
         }
+    }
+    
+    void addProtocol (immutable Protocol p) {
+        protocols ~= p;
     }
     
     bool hasMethod (SEL name) const {
         return !!(name in methods);
     }
     
+    Method replaceMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
+        Method* ret = name in methods;
+        methods[name] = Method.define(name, impl);
+        if (ret)
+            return *ret;
+        else
+            return null;
+    }
+    
+    /* Iteration over a class hierarchy */
     int opApply (int delegate (ref Class) dg) {
         Class cls = this;
         int result = 0;
@@ -113,7 +169,7 @@ public:
     }
     
     int opApply (int delegate (ref const(Class)) dg) const {
-        const(Class) *cls = &this;
+        const(Class)* cls = &this;
         int result = 0;
         do {
             result = dg(*cls);
@@ -126,17 +182,52 @@ public:
         return result;
     }
     
-    string toString () const {
+    // helps with debugging
+    override string toString () const {
         return name;
     }
 
 private:
-    IMP[SEL] methods;
+    Method[SEL] methods;
+    immutable(Protocol)[] protocols;
 }
 
 class Instance : id {
     ~this () {
         this.msgSend!(void)("finalize");
+    }
+}
+
+immutable class Protocol {
+public:
+    immutable Method[] requiredMethods;
+    immutable Method[] optionalMethods;
+    
+    this (immutable Method[] requiredMethods, immutable Method[] optionalMethods) {
+        this.requiredMethods = requiredMethods;
+        this.optionalMethods = optionalMethods;
+    }
+    
+    bool conformsToProtocol (immutable Protocol other) immutable {
+        // to conform to 'other', we must require at least all the methods it does
+        foreach (immutable Method otherMethod; other.requiredMethods) {
+            bool found = false;
+            foreach (immutable Method myMethod; this.requiredMethods) {
+                if (myMethod == otherMethod) {
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found)
+                return false;
+        }
+        
+        return true;
+    }
+    
+    bool opEquals (immutable Protocol other) immutable {
+        return this.requiredMethods == other.requiredMethods && this.optionalMethods == other.optionalMethods;
     }
 }
 
@@ -155,6 +246,15 @@ static this () {
     
     NSObject.isa.addMethod(sel_registerName("class"), function Class (id self, SEL cmd) {
         return cast(Class)self;
+    });
+    
+    NSObject.isa.addMethod(sel_registerName("conformsToProtocol:"), function bool (id self, SEL cmd, immutable Protocol aProtocol) {
+        foreach (p; (cast(Class)self).protocols) {
+            if (p == aProtocol)
+                return true;
+        }
+        
+        return false;
     });
     
     NSObject.isa.addMethod(sel_registerName("description"), function string (id self, SEL cmd) {
@@ -199,6 +299,10 @@ static this () {
     
     NSObject.addMethod(sel_registerName("class"), function Class (id self, SEL cmd) {
         return self.isa;
+    });
+    
+    NSObject.addMethod(sel_registerName("conformsToProtocol:"), function bool (id self, SEL cmd, immutable Protocol aProtocol) {
+        return self.isa.msgSend!(typeof(return))(cmd, aProtocol);
     });
     
     NSObject.addMethod(sel_registerName("doesNotRecognizeSelector:"), function void (id self, SEL cmd, SEL aSelector) {
