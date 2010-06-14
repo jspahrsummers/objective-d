@@ -23,5 +23,12 @@ id obj = MyClass.msgSend!id(sel_registerName("new"))
 ; assert ( obj !is null ) 
 ; assert ( obj.msgSend!id(sel_registerName("class")) is MyClass ) 
 ; 
-writeln ( `All tests passed!`) 
+MyClass.addMethod ( sel_registerName ( `copyAndPrint:also:`) , function id ( id self, SEL cmd, string a, string b ) { 
+writefln ( `a: %s`, a ) 
+; writefln ( `b: %s`, b ) 
+; return 
+self; } ) 
+; 
+obj.msgSend!id(sel_registerName("copyAndPrint:also:"), `hello`, `world`) 
+; writeln ( `All tests passed!`) 
 ; } 
