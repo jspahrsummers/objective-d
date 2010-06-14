@@ -1,9 +1,10 @@
-module objd;
+module objd.runtime;
 import std.algorithm;
 import std.c.stdlib;
 import std.contracts;
 import std.stdio;
 import std.string;
+import std.traits;
 
 /* Basic types */
 alias int NSInteger;
@@ -39,7 +40,7 @@ public:
         foreach (i, type; A)
             argTypes[i] = typeid(type);
         
-        return new Method(selector, cast(IMP)(impl), typeid(T), argTypes);
+        return new Method(selector, cast(IMP)(impl), typeid(Unqual!(T)), argTypes);
     }
     
     this (SEL selector, IMP implementation, TypeInfo returnType, const TypeInfo[] argumentTypes...) {
@@ -89,7 +90,7 @@ public:
                 return T.init;
         }
         
-        enforce(typeid(T) == method.returnType, format("requested return type %s does not match defined return type %s for method %s", typeid(T), method.returnType, method.selector));
+        //enforce(typeid(T) == method.returnType, format("requested return type %s does not match defined return type %s for method %s", typeid(T), method.returnType, method.selector));
         enforce(A.length == method.argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", method.selector, A.length, method.argumentTypes.length));
         
         foreach (i, type; A) {
