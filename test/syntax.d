@@ -5,22 +5,25 @@ import std.stdio;
 
 }
 
++ (id)copyAndPrint:(string)a also:(string)b {
+	writefln("self: %s", self);
+	writefln("self.class: %s", [self class]);
+	writefln("a: %s", a);
+	writefln("b: %s", b);
+	return self;
+}
+
 @end
 
 void main () {
-    assert([MyClass class] is MyClass);
-    assert([[MyClass class] superclass] is NSObject);
-    
-    id obj = [MyClass new];
-    assert(obj !is null);
-    assert([obj class] is MyClass);
-    
-    MyClass.addMethod(@selector(copyAndPrint:also:), function id (id self, SEL cmd, string a, string b) {
-        writefln("a: %s", a);
-        writefln("b: %s", b);
-        return self;
-    });
-    
-    [obj copyAndPrint:"hello" also:"world"];
-    writeln("All tests passed!");
+	assert([MyClass class] is MyClass);
+	assert([[MyClass class] superclass] is NSObject);
+	
+	id obj = [MyClass new];
+	assert(obj !is null);
+	assert([obj class] is MyClass);
+	
+	//[MyClass copyAndPrint:"hello" also:"world"];
+	MyClass.copyAndPrint_also_(MyClass, @selector(copyAndPrint:also:), "hello", "world");
+	writeln("All tests passed!");
 }
