@@ -25,6 +25,14 @@ private pure auto selectorToMethodName (dstring selector) {
 	return assumeUnique(ret);
 }
 
+private pure auto metaClassName (dstring name) {
+	return "Meta" ~ name;
+}
+
+private pure auto classInstanceName (dstring name) {
+	return name ~ "Inst";
+}
+
 private immutable struct Parameter {
 public:
 	immutable Lexeme[] type;
@@ -98,7 +106,8 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 		errorOut(classNameL, "expected identifier");
 	
 	auto className = classNameL.content;
-	auto metaClass = newIdentifier("Meta" ~ className);
+	auto metaClass = newIdentifier(metaClassName(className));
+	auto classInstance = newIdentifier(classInstanceName(className));
 	
 	// MetaClassName ClassName;
 	output ~= metaClass;
@@ -147,11 +156,19 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	//  } /* this () */
 	output ~= newToken("}");
 	
-	// TODO: this isn't correct
-	// variables will get added to class objects instead of instances
+	// } /* class MetaClassName */
+	output ~= newToken("}");
+	
+	// class ClassNameInst : Instance {
+	output ~= newIdentifier("class");
+	output ~= classInstance;
+	output ~= newToken(":");
+	output ~= newIdentifier("Instance");
+	output ~= newToken("{");
+	
 	output ~= parseVariableDefinitions(className, lexemes);
 	
-	// } /* class */
+	// } /* class ClassNameInst */
 	output ~= newToken("}");
 	
 	// static this () {
@@ -167,6 +184,57 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	output ~= newIdentifier("new");
 	output ~= metaClass;
 	output ~= newToken("(");
+	output ~= newToken(")");
+	output ~= newToken(";");
+	
+	// ClassName.isa.addMethod(sel_registerName("alloc")
+	output ~= classNameL;
+	output ~= newToken(".");
+	output ~= newIdentifier("isa");
+	output ~= newToken(".");
+	output ~= newIdentifier("addMethod");
+	output ~= newToken("(");
+	output ~= newIdentifier("sel_registerName");
+	output ~= newToken("(");
+	output ~= newString("alloc");
+	output ~= newToken(")");
+	
+	// , function id (id self, SEL cmd) {
+	output ~= newToken(",");
+	output ~= newIdentifier("function");
+	output ~= newIdentifier("id");
+	output ~= newToken("(");
+	output ~= newIdentifier("id");
+	output ~= newIdentifier("self");
+	output ~= newToken(",");
+	output ~= newIdentifier("SEL");
+	output ~= newIdentifier("cmd");
+	output ~= newToken(")");
+	output ~= newToken("{");
+	
+	// id obj = new ClassNameInst;
+	output ~= newIdentifier("id");
+	output ~= newIdentifier("obj");
+	output ~= newToken("=");
+	output ~= newIdentifier("new");
+	output ~= classInstance;
+	output ~= newToken(";");
+	
+	// obj.isa = ClassName;
+	output ~= newIdentifier("obj");
+	output ~= newToken(".");
+	output ~= newIdentifier("isa");
+	output ~= newToken("=");
+	output ~= classNameL;
+	output ~= newToken(";");
+	
+	// return obj;
+	output ~= newIdentifier("return");
+	output ~= newIdentifier("obj");
+	output ~= newToken(";");
+	
+	// }); /* ClassName.isa.addMethod() */
+	output ~= newToken("}");
 	output ~= newToken(")");
 	output ~= newToken(";");
 	
@@ -221,15 +289,15 @@ private immutable(Lexeme[]) parseMethodDefinitions (dstring className, ref immut
 
 private immutable(Lexeme[]) parseInstanceMethod (dstring className, ref immutable(Lexeme)[] lexemes) {
 	// add the method to the class object
-	return parseMethod([ newIdentifier(className) ], lexemes);
+	return parseMethod(classInstanceName(className), [ newIdentifier(className) ], lexemes);
 }
 
 private immutable(Lexeme[]) parseClassMethod (dstring className, immutable(Lexeme)[] lexemes) {
 	// add the method to the class' metaclass
-	return parseMethod([ newIdentifier(className), newToken("."), newIdentifier("isa") ], lexemes);
+	return parseMethod(metaClassName(className), [ newIdentifier(className), newToken("."), newIdentifier("isa") ], lexemes);
 }
 
-private immutable(Lexeme[]) parseMethod (immutable Lexeme[] object, ref immutable(Lexeme)[] lexemes) {
+private immutable(Lexeme[]) parseMethod (dstring objectType, immutable Lexeme[] object, ref immutable(Lexeme)[] lexemes) {
 	immutable(Lexeme)[] output;
 	
 	auto returnType = parseType(lexemes);
@@ -276,7 +344,7 @@ private immutable(Lexeme[]) parseMethod (immutable Lexeme[] object, ref immutabl
 	output ~= newToken("(");
 	
 	// id self, SEL cmd
-	output ~= newIdentifier("id");
+	output ~= newIdentifier(objectType);
 	output ~= newIdentifier("self");
 	output ~= newToken(",");
 	output ~= newIdentifier("SEL");

@@ -4,7 +4,7 @@ RUNTIME_SOURCES = objd/runtime.d
 all: objective-d
 
 objective-d:
-	dmd -w -ofobjective-d $(SOURCES)
+	dmd -w -unittest -ofobjective-d $(SOURCES)
 
 check: objective-d
 	./objective-d -o testing.d test/syntax.d && dmd -oftesting testing.d $(RUNTIME_SOURCES) && ./testing

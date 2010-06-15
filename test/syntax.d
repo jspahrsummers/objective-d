@@ -2,7 +2,7 @@
 import std.stdio;
 
 @class MyClass : NSObject {
-	int test;
+	public int test;
 }
 
 - (void)methodTest {
@@ -10,10 +10,11 @@ import std.stdio;
 }
 
 - (bool)wordsCannot:(string)what inObjectiveC {
+	++self.test;
 	return true;
 }
 
-+ (id)copyAndPrint:(string)a also:(string)b {
++ (id)print:(string)a also:(string)b {
 	writefln("self: %s", self);
 	writefln("self.class: %s", [self class]);
 	writefln("a: %s", a);
@@ -33,6 +34,12 @@ void main () {
 	
 	[obj methodTest];
 	[obj wordsCannot:"trail" inObjectiveC];
-	[MyClass copyAndPrint:"hello" also:"world"];
-	writeln("All tests passed!");
+	[obj wordsCannot:"trail" inObjectiveC];
+	[obj wordsCannot:"trail" inObjectiveC];
+	
+	auto inst = cast(MyClassInst)(obj);
+	assert(inst.test == 3);
+	
+	id cls = [MyClass print:"hello" also:"world"];
+	assert(cls is MyClass);
 }
