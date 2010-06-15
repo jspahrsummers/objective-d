@@ -1,4 +1,5 @@
 import std.array;
+import std.contracts;
 import std.ctype;
 import std.stdio;
 import std.uni;
@@ -19,7 +20,7 @@ enum Token {
 	Minus,
 	Plus,
 	
-	/* Character and string literals */
+	/* Literals */
 	String,
 	Character,
 	
@@ -27,7 +28,7 @@ enum Token {
 	Identifier
 }
 
-enum SkipType {
+private enum SkipType {
 	None,
 	LineComment,
 	NestedComment,
@@ -40,6 +41,30 @@ enum SkipType {
 	CharLiteral
 }
 
+immutable(Lexeme) newToken (dstring content) {
+	switch (content) {
+	case "@": return new Lexeme(Token.At      , content);
+	case ":": return new Lexeme(Token.Colon   , content);
+	case "{": return new Lexeme(Token.LBrace  , content);
+	case "}": return new Lexeme(Token.RBrace  , content);
+	case "[": return new Lexeme(Token.LBracket, content);
+	case "]": return new Lexeme(Token.RBracket, content);
+	case "(": return new Lexeme(Token.LParen  , content);
+	case ")": return new Lexeme(Token.RParen  , content);
+	case "-": return new Lexeme(Token.Minus   , content);
+	case "+": return new Lexeme(Token.Plus    , content);
+	default:  return new Lexeme(Token.Unknown , content);
+	}
+}
+
+immutable(Lexeme) newIdentifier (dstring content) {
+	return new Lexeme(Token.Identifier, content, null, 0);
+}
+
+immutable(Lexeme) newString (dstring content) {
+	return new Lexeme(Token.String, content, null, 0);
+}
+	
 immutable class Lexeme {
 public:
 	Token token;
@@ -47,7 +72,7 @@ public:
 	string file;
 	ulong line;
 	
-	this (Token token, dstring content, string file, ulong line) {
+	this (Token token, dstring content, string file = null, ulong line = 0) {
 		this.token = token;
 		this.content = content;
 		this.file = file;
@@ -78,7 +103,7 @@ public:
 	}
 }
 
-immutable(Lexeme)[] lex (string file) {
+immutable(Lexeme[]) lex (string file) {
 	/* Initialize state variables */
 	File inFD;
 	try {
@@ -404,5 +429,5 @@ immutable(Lexeme)[] lex (string file) {
 		}
 	}
 	
-	return lexemes;
+	return assumeUnique(lexemes);
 }
