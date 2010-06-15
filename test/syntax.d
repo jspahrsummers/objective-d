@@ -2,16 +2,11 @@
 import std.stdio;
 
 @class MyClass : NSObject {
-	public int test;
+	int test;
 }
 
-- (void)methodTest {
-	writefln("test");
-}
-
-- (bool)wordsCannot:(string)what inObjectiveC {
+- (void)wordsCannot:(string)what inObjectiveC {
 	++self.test;
-	return true;
 }
 
 + (id)print:(string)a also:(string)b {
@@ -32,7 +27,6 @@ void main () {
 	assert(obj !is null);
 	assert([obj class] is MyClass);
 	
-	[obj methodTest];
 	[obj wordsCannot:"trail" inObjectiveC];
 	[obj wordsCannot:"trail" inObjectiveC];
 	[obj wordsCannot:"trail" inObjectiveC];
