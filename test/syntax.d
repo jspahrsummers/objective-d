@@ -2,7 +2,7 @@
 import std.stdio;
 
 @class MyClass : NSObject {
-
+	int test;
 }
 
 //+ (id)copyAndPrint:(string)a also:(string)b {
