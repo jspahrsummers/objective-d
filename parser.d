@@ -22,7 +22,7 @@ private pure auto selectorToMethodName (dstring selector) {
 			ret[i] = ch;
 	}
 	
-	return ret;
+	return assumeUnique(ret);
 }
 
 private immutable struct Parameter {
