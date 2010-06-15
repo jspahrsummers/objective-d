@@ -9,6 +9,10 @@ import std.stdio;
 	writefln("test");
 }
 
+- (bool)wordsCannot:(string)what inObjectiveC {
+	return true;
+}
+
 + (id)copyAndPrint:(string)a also:(string)b {
 	writefln("self: %s", self);
 	writefln("self.class: %s", [self class]);
@@ -28,6 +32,7 @@ void main () {
 	assert([obj class] is MyClass);
 	
 	[obj methodTest];
+	[obj wordsCannot:"trail" inObjectiveC];
 	[MyClass copyAndPrint:"hello" also:"world"];
 	writeln("All tests passed!");
 }
