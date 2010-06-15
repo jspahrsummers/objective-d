@@ -25,7 +25,7 @@ private pure auto selectorToMethodName (dstring selector) {
 	return ret;
 }
 
-private struct Parameter {
+private immutable struct Parameter {
 public:
 	immutable Lexeme[] type;
 	dstring name;
@@ -214,7 +214,6 @@ private immutable(Lexeme[]) parseMethodDefinitions (dstring className, ref immut
 		} else if (next.token == Token.Plus) {
 			output ~= parseClassMethod(lexemes);
 		}
-		
 	}
 	
 	return assumeUnique(output);
@@ -229,7 +228,12 @@ private immutable(Lexeme[]) parseClassMethod (ref immutable(Lexeme)[] lexemes) {
 }
 
 private immutable(Lexeme[]) parseMethod (ref immutable(Lexeme)[] lexemes) {
-	return [];
+	immutable(Lexeme)[] output;
+	
+	auto returnType = parseType(lexemes);
+	
+	
+	return assumeUnique(output);
 }
 	
 private immutable(Lexeme[]) parseSelector (ref immutable(Lexeme)[] lexemes) {
@@ -403,12 +407,24 @@ private immutable(Lexeme[]) parseExpression (ref immutable(Lexeme)[] lexemes) {
 	return assumeUnique(output);
 }
 
-Parameter parseParameter (ref immutable(Lexeme)[] lexemes) {
+private immutable(Parameter) parseParameter (ref immutable(Lexeme)[] lexemes) {
+	auto type = parseType(lexemes);
+	
+	auto identifier = lexemes[0];
+	if (identifier.token != Token.Identifier)
+		errorOut(identifier, "expected argument name");
+	
+	lexemes = lexemes[1 .. $];
+	return Parameter(assumeUnique(type), identifier.content);
+}
+
+private immutable(Lexeme[]) parseType (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] type;
+	
 	if (lexemes[0].token != Token.LParen)
 		errorOut(lexemes[0], "expected (");
 	
 	lexemes = lexemes[1 .. $];
-	immutable(Lexeme)[] type;
 	for (;;) {
 		auto next = lexemes[0];
 		lexemes = lexemes[1 .. $];
@@ -419,12 +435,7 @@ Parameter parseParameter (ref immutable(Lexeme)[] lexemes) {
 			type ~= next;
 	}
 	
-	auto identifier = lexemes[0];
-	if (identifier.token != Token.Identifier)
-		errorOut(identifier, "expected argument name");
-	
-	lexemes = lexemes[1 .. $];
-	return Parameter(assumeUnique(type), identifier.content);
+	return assumeUnique(type);
 }
 	
 	/+
