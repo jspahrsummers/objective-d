@@ -518,6 +518,7 @@ private immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 			errorOut(next, "expected message name");
 	}
 	
+	// TODO: the message return type needs to actually be determined
 	// .msgSend!id(
 	output ~= newToken(".");
 	output ~= newIdentifier("msgSend");
