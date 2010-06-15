@@ -40,6 +40,6 @@ void main () {
 	auto inst = cast(MyClassInst)(obj);
 	assert(inst.test == 3);
 	
-	id cls = [MyClass print:"hello" also:"world"];
+	auto cls = [MyClass print:"hello" also:"world"];
 	assert(cls is MyClass);
 }
