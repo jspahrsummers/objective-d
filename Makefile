@@ -1,5 +1,5 @@
 SOURCES = exceptions.d lexer.d main.d parser.d processor.d
-RUNTIME_SOURCES = objd/objc.d objd/runtime.d
+RUNTIME_SOURCES = objd/nsobject.d objd/objc.d objd/runtime.d objd/types.d
 
 all: objective-d
 

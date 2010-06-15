@@ -33,6 +33,15 @@ private pure auto classInstanceName (dstring name) {
 	return name ~ "Inst";
 }
 
+private immutable(Lexeme[]) objdNamespace () {
+	return [
+		newIdentifier("objd"),
+		newToken("."),
+		newIdentifier("runtime"),
+		newToken(".")
+	];
+}
+
 private immutable struct Parameter {
 public:
 	immutable Lexeme[] type;
@@ -114,10 +123,11 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	output ~= classNameL;
 	output ~= newToken(";");
 	
-	// class MetaClassName : Class {
+	// class MetaClassName : objd.runtime.Class {
 	output ~= newIdentifier("class");
 	output ~= metaClass;
 	output ~= newToken(":");
+	output ~= objdNamespace();
 	output ~= newIdentifier("Class");
 	output ~= newToken("{");
 	
@@ -159,10 +169,11 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	// } /* class MetaClassName */
 	output ~= newToken("}");
 	
-	// class ClassNameInst : Instance {
+	// class ClassNameInst : objd.runtime.Instance {
 	output ~= newIdentifier("class");
 	output ~= classInstance;
 	output ~= newToken(":");
+	output ~= objdNamespace();
 	output ~= newIdentifier("Instance");
 	output ~= newToken("{");
 	
@@ -194,6 +205,7 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	output ~= newToken(".");
 	output ~= newIdentifier("addMethod");
 	output ~= newToken("(");
+	output ~= objdNamespace();
 	output ~= newIdentifier("sel_registerName");
 	output ~= newToken("(");
 	output ~= newString("alloc");
@@ -325,13 +337,14 @@ private immutable(Lexeme[]) parseMethod (dstring objectType, immutable Lexeme[] 
 	
 	// this is inside a module constructor, so we can add methods
 	
-	// Class.addMethod(
+	// ClassName.addMethod(
 	output ~= object;
 	output ~= newToken(".");
 	output ~= newIdentifier("addMethod");
 	output ~= newToken("(");
 	
 	// sel_registerName("name")
+	output ~= objdNamespace();
 	output ~= newIdentifier("sel_registerName");
 	output ~= newToken("(");
 	output ~= newString(selector);
@@ -451,7 +464,7 @@ private immutable(Lexeme[]) parseSelector (ref immutable(Lexeme)[] lexemes) {
 			errorOut(next, "expected selector name or closing parenthesis");
 	}
 	
-	return [
+	return objdNamespace() ~ [
 		newIdentifier("sel_registerName"),
 		newToken("("),
 		newString(selector),
@@ -527,6 +540,7 @@ private immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	output ~= newToken("(");
 	
 	// sel_registerName("name")
+	output ~= objdNamespace();
 	output ~= newIdentifier("sel_registerName");
 	output ~= newToken("(");
 	output ~= newString(selector);

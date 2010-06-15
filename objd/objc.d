@@ -31,7 +31,7 @@ public:
 		return cast(T)ret;
 	}
 	
-private:
+package:
 	ObjCId ptr;
 }
 

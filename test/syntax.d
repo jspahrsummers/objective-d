@@ -1,6 +1,7 @@
 // Objective-D test file
 import std.stdio;
-static import objd.objc;
+import objd.nsobject;
+import objd.objc;
 
 @class MyClass : NSObject {
 	int test;
@@ -20,11 +21,11 @@ static import objd.objc;
 
 @end
 
-objd.objc.ObjCClass NSString;
-objd.objc.ObjCClass NSAutoreleasePool;
+ObjCClass NSString;
+ObjCClass NSAutoreleasePool;
 static this () {
-	NSAutoreleasePool = new objd.objc.ObjCClass("NSAutoreleasePool");
-	NSString = new objd.objc.ObjCClass("NSString");
+	NSAutoreleasePool = new ObjCClass("NSAutoreleasePool");
+	NSString = new ObjCClass("NSString");
 }
 
 void main () {
