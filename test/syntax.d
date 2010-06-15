@@ -5,13 +5,17 @@ import std.stdio;
 	int test;
 }
 
-//+ (id)copyAndPrint:(string)a also:(string)b {
-//	writefln("self: %s", self);
-//	writefln("self.class: %s", [self class]);
-//	writefln("a: %s", a);
-//	writefln("b: %s", b);
-//	return self;
-//}
+- (void)methodTest {
+	writefln("test");
+}
+
++ (id)copyAndPrint:(string)a also:(string)b {
+	writefln("self: %s", self);
+	writefln("self.class: %s", [self class]);
+	writefln("a: %s", a);
+	writefln("b: %s", b);
+	return self;
+}
 
 @end
 
@@ -23,7 +27,7 @@ void main () {
 	assert(obj !is null);
 	assert([obj class] is MyClass);
 	
-	//[MyClass copyAndPrint:"hello" also:"world"];
-	//MyClass.copyAndPrint_also_(MyClass, @selector(copyAndPrint:also:), "hello", "world");
+	[obj methodTest];
+	[MyClass copyAndPrint:"hello" also:"world"];
 	writeln("All tests passed!");
 }

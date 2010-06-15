@@ -105,25 +105,6 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	output ~= classNameL;
 	output ~= newToken(";");
 	
-	// static this () {
-	output ~= newIdentifier("static");
-	output ~= newIdentifier("this");
-	output ~= newToken("(");
-	output ~= newToken(")");
-	output ~= newToken("{");
-	
-	//  ClassName = new MetaClassName();
-	output ~= classNameL;
-	output ~= newToken("=");
-	output ~= newIdentifier("new");
-	output ~= metaClass;
-	output ~= newToken("(");
-	output ~= newToken(")");
-	output ~= newToken(";");
-	
-	// } /* static this () */
-	output ~= newToken("}");
-	
 	// class MetaClassName : Class {
 	output ~= newIdentifier("class");
 	output ~= metaClass;
@@ -173,8 +154,27 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	// } /* class */
 	output ~= newToken("}");
 	
+	// static this () {
+	output ~= newIdentifier("static");
+	output ~= newIdentifier("this");
+	output ~= newToken("(");
+	output ~= newToken(")");
+	output ~= newToken("{");
+	
+	//  ClassName = new MetaClassName();
+	output ~= classNameL;
+	output ~= newToken("=");
+	output ~= newIdentifier("new");
+	output ~= metaClass;
+	output ~= newToken("(");
+	output ~= newToken(")");
+	output ~= newToken(";");
+	
 	// includes @end
 	output ~= parseMethodDefinitions(className, lexemes);
+	
+	// } /* static this () */
+	output ~= newToken("}");
 	
 	return assumeUnique(output);
 }
@@ -210,28 +210,150 @@ private immutable(Lexeme[]) parseMethodDefinitions (dstring className, ref immut
 				break;
 			}
 		} else if (next.token == Token.Minus) {
-			output ~= parseInstanceMethod(lexemes);
+			output ~= parseInstanceMethod(className, lexemes);
 		} else if (next.token == Token.Plus) {
-			output ~= parseClassMethod(lexemes);
+			output ~= parseClassMethod(className, lexemes);
 		}
 	}
 	
 	return assumeUnique(output);
 }
 
-private immutable(Lexeme[]) parseInstanceMethod (ref immutable(Lexeme)[] lexemes) {
-	return parseMethod(lexemes);
+private immutable(Lexeme[]) parseInstanceMethod (dstring className, ref immutable(Lexeme)[] lexemes) {
+	// add the method to the class object
+	return parseMethod([ newIdentifier(className) ], lexemes);
 }
 
-private immutable(Lexeme[]) parseClassMethod (ref immutable(Lexeme)[] lexemes) {
-	return parseMethod(lexemes);
+private immutable(Lexeme[]) parseClassMethod (dstring className, immutable(Lexeme)[] lexemes) {
+	// add the method to the class' metaclass
+	return parseMethod([ newIdentifier(className), newToken("."), newIdentifier("isa") ], lexemes);
 }
 
-private immutable(Lexeme[]) parseMethod (ref immutable(Lexeme)[] lexemes) {
+private immutable(Lexeme[]) parseMethod (immutable Lexeme[] object, ref immutable(Lexeme)[] lexemes) {
 	immutable(Lexeme)[] output;
 	
 	auto returnType = parseType(lexemes);
 	
+	auto firstWord = lexemes[0];
+	if (firstWord.token != Token.Identifier)
+		errorOut(firstWord, "expected method name");
+	
+	lexemes = lexemes[1 .. $];
+	
+	auto selector = firstWord.content.idup;
+	immutable(Parameter)[] parameters;
+	
+	while (lexemes[0].token != Token.LBrace) {
+		if (lexemes[0].token == Token.Colon) {
+			selector ~= ":";
+			lexemes = lexemes[1 .. $];
+			parameters ~= parseParameter(lexemes);
+		} else if (lexemes[0].token == Token.Identifier) {
+			selector ~= lexemes[0].content;
+			lexemes = lexemes[1 .. $];
+		} else
+			errorOut(lexemes[0], "expected method name");
+	}
+	
+	// this is inside a module constructor, so we can add methods
+	
+	// Class.addMethod(
+	output ~= object;
+	output ~= newToken(".");
+	output ~= newIdentifier("addMethod");
+	output ~= newToken("(");
+	
+	// sel_registerName("name")
+	output ~= newIdentifier("sel_registerName");
+	output ~= newToken("(");
+	output ~= newString(selector);
+	output ~= newToken(")");
+	
+	// , function return_type (
+	output ~= newToken(",");
+	output ~= newIdentifier("function");
+	output ~= returnType;
+	output ~= newToken("(");
+	
+	// id self, SEL cmd
+	output ~= newIdentifier("id");
+	output ~= newIdentifier("self");
+	output ~= newToken(",");
+	output ~= newIdentifier("SEL");
+	output ~= newIdentifier("cmd");
+	
+	foreach (ref param; parameters) {
+		// , parameter_type parameter_name
+		output ~= newToken(",");
+		output ~= param.type;
+		output ~= newIdentifier(param.name);
+	}
+	
+	// ) /* function */
+	output ~= newToken(")");
+	
+	output ~= parseImplementationBody(lexemes);
+	
+	// ) /* addMethod */ ;
+	output ~= newToken(")");
+	output ~= newToken(";");
+	
+	return assumeUnique(output);
+}
+
+private immutable(Lexeme[]) parseImplementationBody (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	auto lbrace = lexemes[0];
+	if (lbrace.token != Token.LBrace)
+		errorOut(lbrace, "expected {");
+	
+	output ~= lbrace;
+	
+	lexemes = lexemes[1 .. $];
+	uint nesting = 1;
+	do {
+		switch (lexemes[0].token) {
+		case Token.LBrace:
+			++nesting;
+			break;
+		
+		case Token.RBrace:
+			--nesting;
+			break;
+			
+		case Token.At:
+			auto identifier = lexemes[1];
+			switch (identifier.content) {
+			case "selector": // @selector(test:with:)
+				lexemes = lexemes[2 .. $];
+				output ~= parseSelector(lexemes);
+				break;
+				
+			default:
+				// not an Objective-D keyword
+				output ~= [ lexemes[0], identifier ];
+				lexemes = lexemes[2 .. $];
+			}
+			
+			break;
+		
+		case Token.LBracket:
+			output ~= parseMessageSend(lexemes);
+			
+			// skip closing bracket
+			assert(lexemes[0].token == Token.RBracket);
+			lexemes = lexemes[1 .. $];
+			break;
+		
+		default:
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+		}
+	} while (nesting > 0);
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
 	
 	return assumeUnique(output);
 }
@@ -280,8 +402,6 @@ private immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	bool recursive = false;
 	if (lexemes[0].token == Token.LBracket) {
 		// possibly a recursive message send
-		writefln("recursive message send on line %s", lexemes[0].line);
-		
 		output ~= parseMessageSend(lexemes);
 		recursive = true;
 	}
@@ -314,10 +434,8 @@ private immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	auto selector = firstWord.content.idup;
 	immutable(Lexeme)[][] arguments;
 	
-	// todo: parse nested parens with identifiers
 	for (;;) {
 		auto next = lexemes[0];
-		
 		if (next.token == Token.RBracket)
 			break;
 			
@@ -361,19 +479,23 @@ private immutable(Lexeme[]) parseExpression (ref immutable(Lexeme)[] lexemes) {
 	immutable(Lexeme)[] output;
 	
 	if (lexemes[0].token == Token.LParen) {
+		output ~= lexemes[0];
+	
 		lexemes = lexemes[1 .. $];
 		output ~= parseExpression(lexemes);
 	}
 	
 	size_t pos;
 	for (pos = 0;pos < lexemes.length;) {
-		if (lexemes[pos].token == Token.RParen)
+		if (lexemes[pos].token == Token.RParen) {
+			output ~= lexemes[pos++];
+			break;
+		} else if (lexemes[pos].token == Token.RBracket)
 			break;
 		else if (lexemes[pos].token == Token.Identifier) {
-			// TODO: this could be much better
-			// right now, it basically just looks for two identifiers next to each other
-			if (pos > 0 && lexemes[pos - 1].token == Token.Identifier)
-				break;
+			// TODO: identifiers in expressions are broken
+			//output ~= lexemes[pos++];
+			break;
 		} else if (lexemes[pos].token == Token.At) {
 			// check for Objective-D keywords
 			if (pos < lexemes.length - 1) {
