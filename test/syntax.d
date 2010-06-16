@@ -37,11 +37,6 @@ void main () {
 	assert([obj class] is MyClass);
 	
 	[obj wordsCannot:"trail" inObjectiveC];
-	[obj wordsCannot:"trail" inObjectiveC];
-	[obj wordsCannot:"trail" inObjectiveC];
-	
-	auto inst = cast(MyClassInst)(obj);
-	assert(inst.test == 3);
 	
 	auto cls = [MyClass print:"hello" also:"world"];
 	assert(cls is MyClass);
@@ -49,8 +44,9 @@ void main () {
 	writeln("testing Objective-C compatibility...");
 	
 	auto pool = [NSAutoreleasePool new];
-	writefln("called [%s new] and got object %s", NSAutoreleasePool, pool);
-	writefln("called [%s string] and got object %s", NSString, [NSString string]);
+	
+	auto str = [[NSString alloc] init];
+	writefln("created %s object %s", NSString, str);
 	
 	[pool drain];
 }
