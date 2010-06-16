@@ -11,6 +11,7 @@ enum Token {
 	/* Symbols (the ones we care about, anyways) */
 	At,
 	Colon,
+	Semicolon,
 	LBrace,
 	RBrace,
 	LBracket,
@@ -416,6 +417,11 @@ immutable(Lexeme[]) lex (string file) {
 			case ':':
 				createUnknownLexeme();
 				createLexeme(Token.Colon, ":");
+				continue;
+			
+			case ';':
+				createUnknownLexeme();
+				createLexeme(Token.Semicolon, ";");
 				continue;
 			
 			default:

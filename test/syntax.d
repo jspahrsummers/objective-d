@@ -21,12 +21,8 @@ import objc = objd.objc;
 
 @end
 
-objc.Class NSString;
-objc.Class NSAutoreleasePool;
-static this () {
-	NSAutoreleasePool = new objc.Class("NSAutoreleasePool");
-	NSString = new objc.Class("NSString");
-}
+@objc NSString;
+@objc NSAutoreleasePool;
 
 void main () {
 	assert([MyClass class] is MyClass);

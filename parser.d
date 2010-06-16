@@ -33,11 +33,11 @@ private pure auto classInstanceName (dstring name) {
 	return name ~ "Inst";
 }
 
-private immutable(Lexeme[]) objdNamespace () {
+private immutable(Lexeme[]) objdNamespace (dstring moduleName = "runtime") {
 	return [
 		newIdentifier("objd"),
 		newToken("."),
-		newIdentifier("runtime"),
+		newIdentifier(moduleName),
 		newToken(".")
 	];
 }
@@ -70,21 +70,24 @@ private immutable(Lexeme[]) parseTopLevel (ref immutable(Lexeme)[] lexemes) {
 		switch (lexeme.token) {
 		case Token.At:
 			auto identifier = lexemes[1];
+			lexemes = lexemes[2 .. $];
+				
 			switch (identifier.content) {
 			case "class": // @class X : Y {} ... @end
-				lexemes = lexemes[2 .. $];
 				output ~= parseClass(lexemes);
 				break;
 			
+			case "objc": // @objc(className)
+				output ~= parseObjectiveCClass(lexemes);
+				break;
+			
 			case "selector": // @selector(test:with:)
-				lexemes = lexemes[2 .. $];
 				output ~= parseSelector(lexemes);
 				break;
 				
 			default:
 				// not an Objective-D keyword
 				output ~= [ lexeme, identifier ];
-				lexemes = lexemes[2 .. $];
 			}
 			
 			break;
@@ -257,6 +260,48 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	output ~= newToken("}");
 	
 	return assumeUnique(output);
+}
+
+private immutable(Lexeme[]) parseObjectiveCClass (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	auto className = lexemes[0];
+	if (className.token != Token.Identifier)
+		errorOut(className, "expected Objective-C class name");
+		
+	if (lexemes[1].token != Token.Semicolon)
+		errorOut(lexemes[1], "expected ;");
+		
+	lexemes = lexemes[2 .. $];
+	
+	// objd.objc.Class ClassName;
+	output ~= objdNamespace("objc");
+	output ~= newIdentifier("Class");
+	output ~= className;
+	output ~= newToken(";");
+	
+	// static this () {
+	output ~= newIdentifier("static");
+	output ~= newIdentifier("this");
+	output ~= newToken("(");
+	output ~= newToken(")");
+	output ~= newToken("{");
+	
+	// ClassName = new objd.objc.Class("ClassName")
+	output ~= className;
+	output ~= newToken("=");
+	output ~= newIdentifier("new");
+	output ~= objdNamespace("objc");
+	output ~= newIdentifier("Class");
+	output ~= newToken("(");
+	output ~= newString(className.content);
+	output ~= newToken(")");
+	output ~= newToken(";");
+	
+	// } /* static this () */
+	output ~= newToken("}");
+	
+	return output;
 }
 
 private immutable(Lexeme[]) parseVariableDefinitions (dstring className, ref immutable(Lexeme)[] lexemes) {
