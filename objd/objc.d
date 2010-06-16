@@ -73,31 +73,16 @@ public:
 		if (obj is null)
 			return false;
 		
-		// call in reverse to remove constness
-		return cast(bool)obj.msgSend!(BOOL)(objd.runtime.sel_registerName("isEqual:"), cast(Unqual!(typeof(ptr)))ptr);
+		auto deconsted = cast(Unqual!(typeof(this)))this;
+		return cast(bool)deconsted.msgSend!(BOOL)(objd.runtime.sel_registerName("isEqual:"), obj.ptr);
 	}
 	
 	override string toString () const {
 		if (ptr is null)
 			return "(null)";
-		else if (isClass) {
-			auto className = class_getName(cast(Unqual!(typeof(ptr)))ptr);
-		
-			auto len = strlen(className);
-			auto name = new char[len + 1];
-			strncpy(name.ptr, className, len);
-			name[len] = '\0';
-			
-			return assumeUnique(name);
-		} else {
-			auto className = object_getClassName(cast(Unqual!(typeof(ptr)))ptr);
-		
-			auto len = strlen(className);
-			auto name = new char[len + 1];
-			strncpy(name.ptr, className, len);
-			name[len] = '\0';
-			
-			return format("<%s: %#x>", name, cast(const void*)this);
+		else {
+			auto deconsted = cast(Unqual!(typeof(this)))this;
+			return stringFromNSString(deconsted.msgSend!(id)(objd.runtime.sel_registerName("description")));
 		}
 	}
 	
@@ -112,6 +97,9 @@ package:
 }
 
 string stringFromNSString (id str) {
+	if (str is null || str.ptr is null)
+		return "(null)";
+
 	auto bytes = str.msgSend!(const(char)*)(objd.runtime.sel_registerName("UTF8String"));
 	auto len = strlen(bytes);
 	
