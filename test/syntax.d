@@ -43,5 +43,6 @@ void main () {
 	auto str = [[NSString alloc] init];
 	writefln("created %s object %s", NSString, str);
 	
+	[str release];
 	[pool drain];
 }
