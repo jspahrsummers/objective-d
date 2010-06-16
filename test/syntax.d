@@ -21,11 +21,11 @@ import objd.objc;
 
 @end
 
-ObjCClass NSString;
-ObjCClass NSAutoreleasePool;
+Class NSString;
+Class NSAutoreleasePool;
 static this () {
-	NSAutoreleasePool = new ObjCClass("NSAutoreleasePool");
-	NSString = new ObjCClass("NSString");
+	NSAutoreleasePool = new Class("NSAutoreleasePool");
+	NSString = new Class("NSString");
 }
 
 void main () {

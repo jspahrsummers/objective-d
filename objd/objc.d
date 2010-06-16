@@ -17,7 +17,7 @@ private extern (System) {
 	ObjCSEL sel_registerName (const char* name);
 }
 
-class ObjCClass : objd.runtime.Class {
+class Class : objd.runtime.Class {
 public:
 	this (string name) {
 		super(name, null, false);
@@ -35,7 +35,7 @@ package:
 	ObjCId ptr;
 }
 
-class ObjCInstance : objd.runtime.Instance {
+class Instance : objd.runtime.Instance {
 public:
 	
 }
