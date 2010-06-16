@@ -45,8 +45,11 @@ void main () {
 	
 	auto cls = [MyClass print:"hello" also:"world"];
 	assert(cls is MyClass);
+
+	writeln("testing Objective-C compatibility...");
 	
-	auto pool = [NSAutoreleasePool new];
-	[NSString string];
-	//[pool drain];
+	auto pool = cast(ObjCObject)[NSAutoreleasePool new];
+	writefln("called [NSAutoreleasePool new]");
+	
+	[pool drain];
 }

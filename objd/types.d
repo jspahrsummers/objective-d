@@ -26,6 +26,7 @@ public:
 	
 	T msgSend(T, A...)(SEL cmd, A args) {
 		Class cls = isa;
+		assert(cls !is null);
 		
 		Method method = null;
 		writefln("invoking method %s", cmd);

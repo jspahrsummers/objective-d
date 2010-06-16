@@ -1,5 +1,6 @@
 module objd.objc;
 static import objd.runtime;
+import objd.types;
 import std.stdio;
 import std.string;
 
@@ -17,25 +18,40 @@ private extern (System) {
 	ObjCSEL sel_registerName (const char* name);
 }
 
-class Class : objd.runtime.Class {
+alias ObjCObject Class;
+
+class ObjCObject : id {
 public:
-	this (string name) {
-		super(name, null, false);
+	this (string className) {
+		//super(className, null, false);
 		
-		ptr = objc_getClass(toStringz(name));
+		ptr = objc_getClass(toStringz(className));
 	}
 	
 	T msgSend(T, A...)(objd.runtime.SEL cmd, A args) {
-		auto funcptr = &objc_msgSend;
-		auto ret = funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
-		return cast(T)ret;
+		static if (is(T == id) || is(T : ObjCObject)) {
+			extern(C) ObjCId function (ObjCId, ObjCSEL, A) funcptr;
+			funcptr = cast(typeof(funcptr))&objc_msgSend;
+			
+			auto ret = funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
+			return new ObjCObject(ret);
+		} else {
+			extern(C) T function (ObjCId, ObjCSEL, A) funcptr;
+			funcptr = cast(typeof(funcptr))&objc_msgSend;
+			
+			static if (is(T == void))
+				funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
+			else {
+				auto ret = funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
+				return ret;
+			}
+		}
 	}
 	
 package:
 	ObjCId ptr;
-}
-
-class Instance : objd.runtime.Instance {
-public:
 	
+	this (ObjCId ptr) {
+		this.ptr = ptr;
+	}
 }
