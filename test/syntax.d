@@ -39,7 +39,7 @@ void main () {
 	writeln("testing Objective-C compatibility...");
 	
 	auto pool = [NSAutoreleasePool new];
-	writefln("[pool class] = %s", objd.objc.stringFromNSString([[pool class] description]));
+	writefln("[pool class] = %s", [pool class]);
 	
 	auto str = [[NSString alloc] init];
 	auto str2 = [[[NSString alloc] init] autorelease];
