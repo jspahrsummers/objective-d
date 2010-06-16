@@ -5,14 +5,6 @@ import std.contracts;
 import std.stdio;
 import std.string;
 
-/* Basic types */
-alias int NSInteger;
-alias uint NSUInteger;
-alias bool BOOL;
-
-invariant YES = true;
-invariant NO = false;
-
 /* Selectors */
 alias string SEL;
 

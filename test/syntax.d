@@ -42,7 +42,11 @@ void main () {
 	writefln("[pool class] = %s", objd.objc.stringFromNSString([[pool class] description]));
 	
 	auto str = [[NSString alloc] init];
-	writefln("created %s object %s", NSString, str);
+	auto str2 = [[[NSString alloc] init] autorelease];
+	writefln("created two %s objects: %s, %s", NSString, str, str2);
+	
+	// this will invoke isEqual:
+	assert(str == str2);
 	
 	[str release];
 	[pool drain];

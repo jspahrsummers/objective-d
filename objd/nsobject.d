@@ -84,7 +84,7 @@ static this () {
 	
 	NSObject.addMethod(sel_registerName("finalize"), function void (id self, SEL cmd) {});
 	
-	NSObject.addMethod(sel_registerName("hash"), function NSUInteger (id self, SEL cmd) {
+	NSObject.addMethod(sel_registerName("hash"), function hash_t (id self, SEL cmd) {
 		return self.toHash();
 	});
 	

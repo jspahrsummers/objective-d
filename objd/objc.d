@@ -8,6 +8,16 @@ import std.string;
 import std.traits;
 
 private extern (System) {
+	/* Basic types */
+	alias int NSInteger;
+	alias uint NSUInteger;
+	alias int BOOL;
+	
+	invariant YES = true;
+	invariant NO = false;
+
+	// these types are unsafe as defined in Objective-C
+	// Objective-D provides an id wrapper (below) which can be used normally
 	alias void* objc_id;
 	alias objc_id objc_Class;
 
@@ -56,6 +66,15 @@ public:
 			auto ret = funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
 			return ret;
 		}
+	}
+	
+	override bool opEquals (Object other) const {
+		auto obj = cast(id)other;
+		if (obj is null)
+			return false;
+		
+		// call in reverse to remove constness
+		return cast(bool)obj.msgSend!(BOOL)(objd.runtime.sel_registerName("isEqual:"), cast(Unqual!(typeof(ptr)))ptr);
 	}
 	
 	override string toString () const {
