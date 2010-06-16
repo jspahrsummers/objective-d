@@ -1,7 +1,6 @@
 // Objective-D test file
 import std.stdio;
 import objd.nsobject;
-import objc = objd.objc;
 
 @class MyClass : NSObject {
 	int test;
