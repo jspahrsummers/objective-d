@@ -333,12 +333,14 @@ private immutable(Lexeme[]) parseMethodDefinitions (dstring className, ref immut
 			if (lexemes[0].content == "end") {
 				lexemes = lexemes[1 .. $];
 				break;
-			}
+			} else
+				errorOut(next, "expected method definition");
 		} else if (next.token == Token.Minus) {
 			output ~= parseInstanceMethod(className, lexemes);
 		} else if (next.token == Token.Plus) {
 			output ~= parseClassMethod(className, lexemes);
-		}
+		} else
+			errorOut(next, "expected method definition");
 	}
 	
 	return assumeUnique(output);
