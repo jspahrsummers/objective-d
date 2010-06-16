@@ -91,3 +91,14 @@ package:
 		this.isClass = false;
 	}
 }
+
+string stringFromNSString (id str) {
+	auto bytes = str.msgSend!(const(char)*)(objd.runtime.sel_registerName("UTF8String"));
+	auto len = strlen(bytes);
+	
+	auto newStr = new char[len + 1];
+	strncpy(newStr.ptr, bytes, len);
+	newStr[len] = '\0';
+	
+	return assumeUnique(newStr);
+}
