@@ -1,7 +1,7 @@
 // Objective-D test file
 import std.stdio;
 import objd.nsobject;
-import objd.objc;
+import objc = objd.objc;
 
 @class MyClass : NSObject {
 	int test;
@@ -21,11 +21,11 @@ import objd.objc;
 
 @end
 
-Class NSString;
-Class NSAutoreleasePool;
+objc.Class NSString;
+objc.Class NSAutoreleasePool;
 static this () {
-	NSAutoreleasePool = new Class("NSAutoreleasePool");
-	NSString = new Class("NSString");
+	NSAutoreleasePool = new objc.Class("NSAutoreleasePool");
+	NSString = new objc.Class("NSString");
 }
 
 void main () {
@@ -48,8 +48,8 @@ void main () {
 
 	writeln("testing Objective-C compatibility...");
 	
-	auto pool = cast(ObjCObject)[NSAutoreleasePool new];
-	writefln("called [NSAutoreleasePool new]");
+	auto pool = cast(objc.id)[NSAutoreleasePool new];
+	writefln("called [%s new] and got object %s", NSAutoreleasePool, pool);
 	
 	[pool drain];
 }
