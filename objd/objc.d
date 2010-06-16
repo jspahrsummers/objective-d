@@ -65,7 +65,7 @@ public:
 			strncpy(name.ptr, c_name, len);
 			name[len] = '\0';
 			
-			return format("<%s: 0x%s>", name, cast(const void*)this);
+			return format("<%s: %#x>", name, cast(const void*)this);
 		}
 	}
 	
