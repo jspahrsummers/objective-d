@@ -32,23 +32,27 @@ public:
 		ptr = objc_getClass(toStringz(className));
 	}
 	
-	T msgSend(T, A...)(objd.types.SEL cmd, A args) {
-		static if (is(T == objd.types.id) || is(T : id)) {
-			extern(C) objc_id function (objc_id, SEL, A) funcptr;
-			funcptr = cast(typeof(funcptr))&objc_msgSend;
-			
+	typeof(this) msgSend(T, A...)(objd.types.SEL cmd, A args)
+		if (is(T == objd.types.id) || is(T : id))
+	{
+		extern(C) objc_id function (objc_id, SEL, A) funcptr;
+		funcptr = cast(typeof(funcptr))&objc_msgSend;
+		
+		auto ret = funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
+		return new typeof(this)(ret);
+	}
+	
+	T msgSend(T, A...)(objd.types.SEL cmd, A args)
+		if (!(is(T == objd.types.id) || is(T : id)))
+	{
+		extern(C) T function (objc_id, SEL, A) funcptr;
+		funcptr = cast(typeof(funcptr))&objc_msgSend;
+		
+		static if (is(T == void))
+			funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
+		else {
 			auto ret = funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
-			return new typeof(this)(ret);
-		} else {
-			extern(C) T function (objc_id, SEL, A) funcptr;
-			funcptr = cast(typeof(funcptr))&objc_msgSend;
-			
-			static if (is(T == void))
-				funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
-			else {
-				auto ret = funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
-				return ret;
-			}
+			return ret;
 		}
 	}
 	

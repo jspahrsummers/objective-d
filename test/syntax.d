@@ -48,7 +48,7 @@ void main () {
 
 	writeln("testing Objective-C compatibility...");
 	
-	auto pool = cast(objc.id)[NSAutoreleasePool new];
+	auto pool = [NSAutoreleasePool new];
 	writefln("called [%s new] and got object %s", NSAutoreleasePool, pool);
 	
 	[pool drain];
