@@ -9,6 +9,7 @@ import std.traits;
 
 private extern (System) {
 	alias void* objc_id;
+	alias objc_id objc_Class;
 
 	/* Selectors */
 	struct objc_selector {}
@@ -18,6 +19,7 @@ private extern (System) {
 	objc_id objc_msgSend (objc_id, SEL, ...);
 	
 	/* Reflection */
+	const(char)* class_getName (objc_Class);
 	objc_id objc_getClass (const char*);
 	const(char)* object_getClassName (objc_id);
 	SEL sel_registerName (const char*);
@@ -28,8 +30,8 @@ alias id Class;
 class id : objd.types.id {
 public:
 	this (string className) {
-		this.className = className;
-		ptr = objc_getClass(toStringz(className));
+		this.ptr = objc_getClass(toStringz(className));
+		this.isClass = true;
 	}
 	
 	typeof(this) msgSend(T, A...)(objd.types.SEL cmd, A args)
@@ -57,16 +59,23 @@ public:
 	}
 	
 	override string toString () const {
-		if (className !is null)
-			return className;
-		else if (ptr is null)
+		if (ptr is null)
 			return "(null)";
-		else {
-			auto c_name = object_getClassName(cast(Unqual!(typeof(ptr)))ptr);
+		else if (isClass) {
+			auto className = class_getName(cast(Unqual!(typeof(ptr)))ptr);
 		
-			auto len = strlen(c_name);
+			auto len = strlen(className);
 			auto name = new char[len + 1];
-			strncpy(name.ptr, c_name, len);
+			strncpy(name.ptr, className, len);
+			name[len] = '\0';
+			
+			return assumeUnique(name);
+		} else {
+			auto className = object_getClassName(cast(Unqual!(typeof(ptr)))ptr);
+		
+			auto len = strlen(className);
+			auto name = new char[len + 1];
+			strncpy(name.ptr, className, len);
 			name[len] = '\0';
 			
 			return format("<%s: %#x>", name, cast(const void*)this);
@@ -75,9 +84,10 @@ public:
 	
 package:
 	objc_id ptr;
-	string className;
+	immutable bool isClass;
 	
 	this (objc_id ptr) {
 		this.ptr = ptr;
+		this.isClass = false;
 	}
 }

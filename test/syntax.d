@@ -50,6 +50,7 @@ void main () {
 	
 	auto pool = [NSAutoreleasePool new];
 	writefln("called [%s new] and got object %s", NSAutoreleasePool, pool);
+	writefln("called [%s string] and got object %s", NSString, [NSString string]);
 	
 	[pool drain];
 }
