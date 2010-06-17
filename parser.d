@@ -337,8 +337,9 @@ private immutable(Lexeme[]) parseMethodDefinitions (dstring className, ref immut
 			output ~= parseInstanceMethod(className, lexemes);
 		} else if (next.token == Token.Plus) {
 			output ~= parseClassMethod(className, lexemes);
-		}// else
-		 //	errorOut(next, "expected method definition");
+		} else {
+		 	errorOut(next, "expected method definition");
+		 }
 	}
 	
 	return assumeUnique(output);
@@ -349,7 +350,7 @@ private immutable(Lexeme[]) parseInstanceMethod (dstring className, ref immutabl
 	return parseMethod(classInstanceName(className), [ newIdentifier(className) ], lexemes);
 }
 
-private immutable(Lexeme[]) parseClassMethod (dstring className, immutable(Lexeme)[] lexemes) {
+private immutable(Lexeme[]) parseClassMethod (dstring className, ref immutable(Lexeme)[] lexemes) {
 	// add the method to the class' metaclass
 	return parseMethod(metaClassName(className), [ newIdentifier(className), newToken("."), newIdentifier("isa") ], lexemes);
 }
