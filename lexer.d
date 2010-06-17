@@ -8,14 +8,128 @@ import exceptions;
 enum Token {
 	Unknown,
 	
-	/* Identifiers */
+	/* Identifiers and D keywords */
 	Identifier,
 	
+	/+
 	/* D keywords */
-	DKeyword,
+	D_abstract		 ,
+	D_alias			 ,
+	D_align			 ,
+	D_asm			 ,
+	D_assert		 ,
+	D_auto			 ,
+	D_body			 ,
+	D_bool			 ,
+	D_break			 ,
+	D_byte			 ,
+	D_case			 ,
+	D_cast			 ,
+	D_catch			 ,
+	D_cdouble		 ,
+	D_cent			 ,
+	D_cfloat		 ,
+	D_char			 ,
+	D_class			 ,
+	D_const			 ,
+	D_continue		 ,
+	D_creal			 ,
+	D_dchar			 ,
+	D_debug			 ,
+	D_default		 ,
+	D_delegate		 ,
+	D_delete		 ,
+	D_deprecated	 ,
+	D_do			 ,
+	D_double		 ,
+	D_else			 ,
+	D_enum			 ,
+	D_export		 ,
+	D_extern		 ,
+	D_false			 ,
+	D_final			 ,
+	D_finally		 ,
+	D_float			 ,
+	D_for			 ,
+	D_foreach		 ,
+	D_foreach_reverse,
+	D_function		 ,
+	D_goto			 ,
+	D_idouble		 ,
+	D_if			 ,
+	D_ifloat		 ,
+	D_immutable		 ,
+	D_import		 ,
+	D_in			 ,
+	D_inout			 ,
+	D_int			 ,
+	D_interface		 ,
+	D_invariant		 ,
+	D_ireal			 ,
+	D_is			 ,
+	D_lazy			 ,
+	D_long			 ,
+	D_macro			 ,
+	D_mixin			 ,
+	D_module		 ,
+	D_new			 ,
+	D_nothrow		 ,
+	D_null			 ,
+	D_out			 ,
+	D_override		 ,
+	D_package		 ,
+	D_pragma		 ,
+	D_private		 ,
+	D_protected		 ,
+	D_public		 ,
+	D_pure			 ,
+	D_real			 ,
+	D_ref			 ,
+	D_return		 ,
+	D_scope			 ,
+	D_shared		 ,
+	D_short			 ,
+	D_static		 ,
+	D_struct		 ,
+	D_super			 ,
+	D_switch		 ,
+	D_synchronized	 ,
+	D_template		 ,
+	D_this			 ,
+	D_throw			 ,
+	D_true			 ,
+	D_try			 ,
+	D_typedef		 ,
+	D_typeid		 ,
+	D_typeof		 ,
+	D_ubyte			 ,
+	D_ucent			 ,
+	D_uint			 ,
+	D_ulong			 ,
+	D_union			 ,
+	D_unittest		 ,
+	D_ushort		 ,
+	D_version		 ,
+	D_void			 ,
+	D_volatile		 ,
+	D_wchar			 ,
+	D_while			 ,
+	D_with			 ,
+	D___FILE__		 ,
+	D___LINE__		 ,
+	D___gshared		 ,
+	D___thread		 ,
+	D___traits		 ,
+	+/
 	
-	/* Objective-D keywords (typically prefaced with an @) */
-	ObjectiveDKeyword,
+	/* Objective-D keywords (prefixed with an @) */
+	ObjD_class,
+	ObjD_selector,
+	ObjD_objc,
+	ObjD_end,
+	ObjD_protocol,
+	ObjD_optional,
+	ObjD_required,
 	
 	/* Literals */
 	String,
@@ -221,6 +335,8 @@ private enum SkipType {
 }
 
 private Token[dstring] tokenLookupTable;
+//private Token[dstring] dKeywordTable;
+private Token[dstring] objectiveDKeywordTable;
 
 static this () {
 	tokenLookupTable = [
@@ -288,6 +404,133 @@ static this () {
 	];
 	
 	tokenLookupTable.rehash;
+	
+	/+
+	dKeywordTable = [
+		"abstract" : Token.D_abstract,
+		"alias" : Token.D_alias,
+		"align" : Token.D_align,
+		"asm" : Token.D_asm,
+		"assert" : Token.D_assert,
+		"auto" : Token.D_auto,
+		"body" : Token.D_body,
+		"bool" : Token.D_bool,
+		"break" : Token.D_break,
+		"byte" : Token.D_byte,
+		"case" : Token.D_case,
+		"cast" : Token.D_cast,
+		"catch" : Token.D_catch,
+		"cdouble" : Token.D_cdouble,
+		"cent" : Token.D_cent,
+		"cfloat" : Token.D_cfloat,
+		"char" : Token.D_char,
+		"class" : Token.D_class,
+		"const" : Token.D_const,
+		"continue" : Token.D_continue,
+		"creal" : Token.D_creal,
+		"dchar" : Token.D_dchar,
+		"debug" : Token.D_debug,
+		"default" : Token.D_default,
+		"delegate" : Token.D_delegate,
+		"delete" : Token.D_delete,
+		"deprecated" : Token.D_deprecated,
+		"do" : Token.D_do,
+		"double" : Token.D_double,
+		"else" : Token.D_else,
+		"enum" : Token.D_enum,
+		"export" : Token.D_export,
+		"extern" : Token.D_extern,
+		"false" : Token.D_false,
+		"final" : Token.D_final,
+		"finally" : Token.D_finally,
+		"float" : Token.D_float,
+		"for" : Token.D_for,
+		"foreach" : Token.D_foreach,
+		"foreach_reverse" : Token.D_foreach_reverse,
+		"function" : Token.D_function,
+		"goto" : Token.D_goto,
+		"idouble" : Token.D_idouble,
+		"if" : Token.D_if,
+		"ifloat" : Token.D_ifloat,
+		"immutable" : Token.D_immutable,
+		"import" : Token.D_import,
+		"in" : Token.D_in,
+		"inout" : Token.D_inout,
+		"int" : Token.D_int,
+		"interface" : Token.D_interface,
+		"invariant" : Token.D_invariant,
+		"ireal" : Token.D_ireal,
+		"is" : Token.D_is,
+		"lazy" : Token.D_lazy,
+		"long" : Token.D_long,
+		"macro" : Token.D_macro,
+		"mixin" : Token.D_mixin,
+		"module" : Token.D_module,
+		"new" : Token.D_new,
+		"nothrow" : Token.D_nothrow,
+		"null" : Token.D_null,
+		"out" : Token.D_out,
+		"override" : Token.D_override,
+		"package" : Token.D_package,
+		"pragma" : Token.D_pragma,
+		"private" : Token.D_private,
+		"protected" : Token.D_protected,
+		"public" : Token.D_public,
+		"pure" : Token.D_pure,
+		"real" : Token.D_real,
+		"ref" : Token.D_ref,
+		"return" : Token.D_return,
+		"scope" : Token.D_scope,
+		"shared" : Token.D_shared,
+		"short" : Token.D_short,
+		"static" : Token.D_static,
+		"struct" : Token.D_struct,
+		"super" : Token.D_super,
+		"switch" : Token.D_switch,
+		"synchronized" : Token.D_synchronized,
+		"template" : Token.D_template,
+		"this" : Token.D_this,
+		"throw" : Token.D_throw,
+		"true" : Token.D_true,
+		"try" : Token.D_try,
+		"typedef" : Token.D_typedef,
+		"typeid" : Token.D_typeid,
+		"typeof" : Token.D_typeof,
+		"ubyte" : Token.D_ubyte,
+		"ucent" : Token.D_ucent,
+		"uint" : Token.D_uint,
+		"ulong" : Token.D_ulong,
+		"union" : Token.D_union,
+		"unittest" : Token.D_unittest,
+		"ushort" : Token.D_ushort,
+		"version" : Token.D_version,
+		"void" : Token.D_void,
+		"volatile" : Token.D_volatile,
+		"wchar" : Token.D_wchar,
+		"while" : Token.D_while,
+		"with" : Token.D_with,
+		"__FILE__" : Token.D___FILE__,
+		"__LINE__" : Token.D___LINE__,
+		"__gshared" : Token.D___gshared,
+		"__thread" : Token.D___thread,
+		"__traits" : Token.D___traits
+	];
+	
+	dKeywordTable.rehash;
+	+/
+	
+	// all of these should be considered prefixed with @
+	objectiveDKeywordTable = [
+		"class"    : Token.ObjD_class,
+		"selector" : Token.ObjD_selector,
+		"objc"     : Token.ObjD_objc,
+		"end"      : Token.ObjD_end,
+		"protocol" : Token.ObjD_protocol,
+		"optional" : Token.ObjD_optional,
+		"required" : Token.ObjD_required
+	];
+	
+	objectiveDKeywordTable.rehash;
 }
 
 public Token tokenForString (dstring str) {
@@ -655,5 +898,43 @@ immutable(Lexeme[]) lex (string file) {
 		}
 	}
 	
-	return assumeUnique(lexemes);
+	return keywordify(assumeUnique(lexemes));
+}
+
+immutable(Lexeme[]) keywordify (immutable Lexeme[] lexemes) {
+	immutable(Lexeme)[] output;
+
+	for (size_t i = 0;i < lexemes.length;++i) {
+		auto lexeme = lexemes[i];
+		switch (lexeme.token) {
+		case Token.At:
+			// check for Objective-D keywords
+			if (i + 1 < lexemes.length && lexemes[i + 1].token == Token.Identifier) {
+				auto ident = lexemes[i + 1].content;
+				bool found = false;
+				foreach (str, tok; objectiveDKeywordTable) {
+					if (str == ident) {
+						output ~= new Lexeme(tok, "@" ~ str, lexeme.file, lexeme.line);
+						found = true;
+						break;
+					}
+				}
+				
+				if (found) {
+					// skip over the keyword just processed
+					++i;
+					
+					// already added a lexeme to the stream
+					break;
+				}
+			}
+			
+			// fall through
+			
+		default:
+			output ~= lexeme;
+		}
+	}
+	
+	return assumeUnique(output);
 }

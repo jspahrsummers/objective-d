@@ -80,28 +80,19 @@ private immutable(Lexeme[]) parseTopLevel (ref immutable(Lexeme)[] lexemes) {
 		auto lexeme = lexemes[0];
 		
 		switch (lexeme.token) {
-		case Token.At:
-			auto identifier = lexemes[1];
-			lexemes = lexemes[2 .. $];
-				
-			switch (identifier.content) {
-			case "class": // @class X : Y {} ... @end
-				output ~= parseClass(lexemes);
-				break;
+		case Token.ObjD_class:
+			lexemes = lexemes[1 .. $];
+			output ~= parseClass(lexemes);
+			break;
 			
-			case "objc": // @objc(className)
-				output ~= parseObjectiveCClass(lexemes);
-				break;
+		case Token.ObjD_objc:
+			lexemes = lexemes[1 .. $];
+			output ~= parseObjectiveCClass(lexemes);
+			break;
 			
-			case "selector": // @selector(test:with:)
-				output ~= parseSelector(lexemes);
-				break;
-				
-			default:
-				// not an Objective-D keyword
-				output ~= [ lexeme, identifier ];
-			}
-			
+		case Token.ObjD_selector:
+			lexemes = lexemes[1 .. $];
+			output ~= parseSelector(lexemes);
 			break;
 		
 		case Token.LBracket:
@@ -340,13 +331,8 @@ private immutable(Lexeme[]) parseMethodDefinitions (dstring className, ref immut
 		auto next = lexemes[0];
 		lexemes = lexemes[1 .. $];
 		
-		if (next.token == Token.At) {
-			// check for @end
-			if (lexemes[0].content == "end") {
-				lexemes = lexemes[1 .. $];
-				break;
-			} else
-				errorOut(next, "expected method definition");
+		if (next.token == Token.ObjD_end) {
+			break;
 		} else if (next.token == Token.Minus) {
 			output ~= parseInstanceMethod(className, lexemes);
 		} else if (next.token == Token.Plus) {
@@ -462,20 +448,9 @@ private immutable(Lexeme[]) parseImplementationBody (ref immutable(Lexeme)[] lex
 			--nesting;
 			break;
 			
-		case Token.At:
-			auto identifier = lexemes[1];
-			switch (identifier.content) {
-			case "selector": // @selector(test:with:)
-				lexemes = lexemes[2 .. $];
-				output ~= parseSelector(lexemes);
-				break;
-				
-			default:
-				// not an Objective-D keyword
-				output ~= [ lexemes[0], identifier ];
-				lexemes = lexemes[2 .. $];
-			}
-			
+		case Token.ObjD_selector:
+			lexemes = lexemes[1 .. $];
+			output ~= parseSelector(lexemes);
 			break;
 		
 		case Token.LBracket:
@@ -643,22 +618,13 @@ private immutable(Lexeme[]) parseExpression (ref immutable(Lexeme)[] lexemes) {
 			// TODO: identifiers in expressions are broken
 			//output ~= lexemes[pos++];
 			break;
-		} else if (lexemes[pos].token == Token.At) {
-			// check for Objective-D keywords
-			if (pos < lexemes.length - 1) {
-				switch (lexemes[pos + 1].content) {
-				case "selector":
-					auto moving = lexemes[pos + 2 .. $];
-					output ~= parseSelector(moving);
-					
-					lexemes = moving;
-					pos = 0;
-					continue;
-				
-				default:
-					;
-				}
-			}
+		} else if (lexemes[pos].token == Token.ObjD_selector) {
+			auto moving = lexemes[pos + 1 .. $];
+			output ~= parseSelector(moving);
+			
+			lexemes = moving;
+			pos = 0;
+			continue;
 		} else if (lexemes[pos].token == Token.LBracket) {
 			auto moving = lexemes[pos .. $];
 			output ~= parseMessageSend(moving);
