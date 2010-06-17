@@ -13,6 +13,18 @@ private void errorOut(T...)(immutable Lexeme lexeme, T args) {
 	throw new ParseException;
 }
 
+private immutable(Lexeme) newToken (dstring content) {
+	return new Lexeme(tokenForString(content), content);
+}
+
+private immutable(Lexeme) newIdentifier (dstring content) {
+	return new Lexeme(Token.Identifier, content, null, 0);
+}
+
+private immutable(Lexeme) newString (dstring content) {
+	return new Lexeme(Token.String, content, null, 0);
+}
+
 private pure auto selectorToMethodName (dstring selector) {
 	auto ret = new dchar[selector.length];
 	foreach (i, ch; selector) {
@@ -520,6 +532,8 @@ private immutable(Lexeme[]) parseSelector (ref immutable(Lexeme)[] lexemes) {
 }
 
 private immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
+	// TODO: this will break with associative arrays and some slices
+		
 	auto lbracket = lexemes[0];
 	assert(lbracket.token == Token.LBracket);
 	lexemes = lexemes[1 .. $];
@@ -528,10 +542,13 @@ private immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	
 	auto receiver = lexemes[0];
 	bool recursive = false;
-	if (lexemes[0].token == Token.LBracket) {
+	if (receiver.token == Token.LBracket) {
 		// possibly a recursive message send
 		output ~= parseMessageSend(lexemes);
 		recursive = true;
+	} else if (receiver.token == Token.RBracket) {
+		// array slice/vector operation syntax
+		return [ lbracket, receiver ];
 	}
 	
 	auto firstWord = lexemes[1];

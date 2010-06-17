@@ -1,32 +1,210 @@
-import std.array;
 import std.contracts;
 import std.ctype;
 import std.stdio;
+import std.string;
 import std.uni;
 import exceptions;
 
 enum Token {
 	Unknown,
 	
-	/* Symbols (the ones we care about, anyways) */
-	At,
-	Colon,
-	Semicolon,
-	LBrace,
-	RBrace,
-	LBracket,
-	RBracket,
-	LParen,
-	RParen,
-	Minus,
-	Plus,
+	/* Identifiers */
+	Identifier,
+	
+	/* D keywords */
+	DKeyword,
+	
+	/* Objective-D keywords (typically prefaced with an @) */
+	ObjectiveDKeyword,
 	
 	/* Literals */
 	String,
 	Character,
+	Number,
 	
-	/* Identifiers and Objective-D keywords */
-	Identifier
+	/* Symbols */
+	// @
+	At,
+	
+	// /
+	Slash,
+	
+	// /=
+	DivEq,
+	
+	// .
+	Dot,
+	
+	// ..
+	Range,
+	
+	// ...
+	Ellipsis,
+	
+	// &
+	BitwiseAnd,
+	
+	// &=
+	AndEq,
+	
+	// &&
+	LogicalAnd,
+	
+	// |
+	BitwiseOr,
+	
+	// |=
+	OrEq,
+	
+	// ||
+	LogicalOr,
+	
+	// -
+	Minus,
+	
+	// -=
+	MinusEq,
+	
+	// --
+	Decrement,
+	
+	// +
+	Plus,
+	
+	// +=
+	PlusEq,
+	
+	// ++
+	Increment,
+	
+	// <
+	Less,
+	
+	// <=
+	LessEq,
+	
+	// <<
+	ShiftLeft,
+	
+	// <<=
+	ShiftLeftEq,
+	
+	// <>
+	LessGreater,
+	
+	// <>=
+	LessGreaterEq,
+	
+	// >
+	Greater,
+	
+	// >=
+	GreaterEq,
+	
+	// >>=
+	ShiftRightEq,
+	
+	// >>>=
+	UnsignedShiftRightEq,
+	
+	// >>
+	ShiftRight,
+	
+	// >>>
+	UnsignedShiftRight,
+	
+	// !
+	Exclamation,
+	
+	// !=
+	NotEq,
+	
+	// !<>
+	NotLessGreater,
+	
+	// !<>=
+	NotLessGreaterEq,
+	
+	// !<
+	NotLess,
+	
+	// !<=
+	NotLessEq,
+	
+	// !>
+	NotGreater,
+	
+	// !>=
+	NotGreaterEq,
+	
+	// (
+	LParen,
+	
+	// )
+	RParen,
+	
+	// [
+	LBracket,
+	
+	// ]
+	RBracket,
+	
+	// {
+	LBrace,
+	
+	// }
+	RBrace,
+	
+	// ?
+	Question,
+	
+	// ,
+	Comma,
+	
+	// ;
+	Semicolon,
+	
+	// :
+	Colon,
+	
+	// $
+	Dollar,
+	
+	// =
+	Assign,
+	
+	// ==
+	Eq,
+	
+	// *
+	Star,
+	
+	// *=
+	MulEq,
+	
+	// %
+	Mod,
+	
+	// %=
+	ModEq,
+	
+	// ^
+	Xor,
+	
+	// ^=
+	XorEq,
+	
+	// ^^
+	Pow,
+	
+	// ^^=
+	PowEq,
+	
+	// ~
+	BitwiseNot,
+	
+	// ~=
+	BitwiseNotEq,
 }
 
 private enum SkipType {
@@ -42,30 +220,95 @@ private enum SkipType {
 	CharLiteral
 }
 
-immutable(Lexeme) newToken (dstring content) {
-	switch (content) {
-	case "@": return new Lexeme(Token.At      , content);
-	case ":": return new Lexeme(Token.Colon   , content);
-	case "{": return new Lexeme(Token.LBrace  , content);
-	case "}": return new Lexeme(Token.RBrace  , content);
-	case "[": return new Lexeme(Token.LBracket, content);
-	case "]": return new Lexeme(Token.RBracket, content);
-	case "(": return new Lexeme(Token.LParen  , content);
-	case ")": return new Lexeme(Token.RParen  , content);
-	case "-": return new Lexeme(Token.Minus   , content);
-	case "+": return new Lexeme(Token.Plus    , content);
-	default:  return new Lexeme(Token.Unknown , content);
-	}
-}
+private Token[dstring] tokenLookupTable;
 
-immutable(Lexeme) newIdentifier (dstring content) {
-	return new Lexeme(Token.Identifier, content, null, 0);
-}
-
-immutable(Lexeme) newString (dstring content) {
-	return new Lexeme(Token.String, content, null, 0);
-}
+static this () {
+	tokenLookupTable = [
+		"@"d    : Token.At,
+		"/"d    : Token.Slash,
+		"/="d   : Token.DivEq,
+		"."d    : Token.Dot,
+		".."d   : Token.Range,
+		"..."d  : Token.Ellipsis,
+		"&"d    : Token.BitwiseAnd,
+		"&="d   : Token.AndEq,
+		"&&"d   : Token.LogicalAnd,
+		"|"d    : Token.BitwiseOr,
+		"|="d   : Token.OrEq,
+		"||"d   : Token.LogicalOr,
+		"-"d    : Token.Minus,
+		"-="d   : Token.MinusEq,
+		"--"d   : Token.Decrement,
+		"+"d    : Token.Plus,
+		"+="d   : Token.PlusEq,
+		"++"d   : Token.Increment,
+		"<"d    : Token.Less,
+		"<="d   : Token.LessEq,
+		"<<"d   : Token.ShiftLeft,
+		"<<="d  : Token.ShiftLeftEq,
+		"<>"d   : Token.LessGreater,
+		"<>="d  : Token.LessGreaterEq,
+		">"d    : Token.Greater,
+		">="d   : Token.GreaterEq,
+		">>="d  : Token.ShiftRightEq,
+		">>>="d : Token.UnsignedShiftRightEq,
+		">>"d   : Token.ShiftRight,
+		">>>"d  : Token.UnsignedShiftRight,
+		"!"d    : Token.Exclamation,
+		"!="d   : Token.NotEq,
+		"!<>"d  : Token.NotLessGreater,
+		"!<>="d : Token.NotLessGreaterEq,
+		"!<"d   : Token.NotLess,
+		"!<="d  : Token.NotLessEq,
+		"!>"d   : Token.NotGreater,
+		"!>="d  : Token.NotGreaterEq,
+		"("d    : Token.LParen,
+		")"d    : Token.RParen,
+		"["d    : Token.LBracket,
+		"]"d    : Token.RBracket,
+		"{"d    : Token.LBrace,
+		"}"d    : Token.RBrace,
+		"?"d    : Token.Question,
+		","d    : Token.Comma,
+		";"d    : Token.Semicolon,
+		":"d    : Token.Colon,
+		"$"d    : Token.Dollar,
+		"="d    : Token.Assign,
+		"=="d   : Token.Eq,
+		"*"d    : Token.Star,
+		"*="d   : Token.MulEq,
+		"%"d    : Token.Mod,
+		"%="d   : Token.ModEq,
+		"^"d    : Token.Xor,
+		"^="d   : Token.XorEq,
+		"^^"d   : Token.Pow,
+		"^^="d  : Token.PowEq,
+		"~"d    : Token.BitwiseNot,
+		"~="d   : Token.BitwiseNotEq
+	];
 	
+	tokenLookupTable.rehash;
+}
+
+public Token tokenForString (dstring str) {
+	// associative array lookup seems to be broken?
+	//auto tok = str in tokenLookupTable;
+	//if (tok == null)
+	//	return Token.Unknown;
+	//else
+	//	return *tok;
+	
+	auto tok = Token.Unknown;
+	foreach (strk, tokv; tokenLookupTable) {
+		if (strk == str) {
+			tok = tokv;
+			break;
+		}
+	}
+	
+	return tok;
+}
+
 immutable class Lexeme {
 public:
 	Token token;
@@ -73,19 +316,23 @@ public:
 	string file;
 	ulong line;
 	
-	this (Token token, dstring content, string file = null, ulong line = 0) {
+	this (Token token, dstring content, string file = null, ulong line = 0)
+	in {
+		assert(content !is null);
+	} body {
 		this.token = token;
 		this.content = content;
 		this.file = file;
 		this.line = line;
 	}
 	
-	void writeToFile (ref File outFD) immutable {
+	void writeToFile (ref File outFD) const {
+		assert(content !is null);
+		
 		switch (token) {
 		case Token.At:
-			outFD.write('@');
-			
 			// don't put a space after @s
+			outFD.write('@');
 			break;
 		
 		case Token.String:
@@ -101,6 +348,19 @@ public:
 		default:
 			outFD.write(content, ' ');
 		}
+	}
+	
+	bool opEquals (in Object other) const {
+		auto lexeme = cast(typeof(this))other;
+		if (lexeme is null)
+			return false;
+		
+		return this.token == lexeme.token && this.content == lexeme.content;
+	}
+	
+	// for debugging purposes only
+	@property string description () const {
+		return format("%s:%s: %s = %s", file, line, token, content);
 	}
 }
 
@@ -120,7 +380,8 @@ immutable(Lexeme[]) lex (string file) {
 	dchar[] buffer;
 	ulong line = 1;
 	
-	auto current = Appender!dstring(null);
+	dstring current = "";
+	Token currentToken;
 	dchar lastChar;
 	dchar closingDelimiter;
 	dchar openingDelimiter;
@@ -135,43 +396,18 @@ immutable(Lexeme[]) lex (string file) {
 		throw new ParseException;
 	}
 	
-	void createLexeme (Token token, dstring content = current.data) {
-		lexemes ~= new Lexeme(token, content.idup, file, line);
-		current.clear();
-		skip = SkipType.None;
-		
-		//writefln("creating lexeme with content: %s", content);
-	}
-	
-	void createUnknownLexeme () {
-		if (current.data is null || current.data.length == 0)
-			return;
-		
-		// check tokens for which we need to munch maximally
-		switch (current.data) {
-		case "-":
-			createLexeme(Token.Minus);
-			break;
-		
-		case "+":
-			createLexeme(Token.Plus);
-			break;
-		
-		default:
-			bool isIdentifier = false;
-			if (current.data[0] == '_' || isUniAlpha(current.data[0])) {
-				isIdentifier = true;
-				foreach (identCh; current.data[1 .. $]) {
-					if (identCh != '_' && !isdigit(identCh) && !isUniAlpha(identCh)) {
-						isIdentifier = false;
-						break;
-					}
-				}
-			}
+	void createLexeme () {
+		if (current != "") {
+			assert(currentToken != Token.Unknown);
 			
-			//writefln("creating unknown lexeme (identifier = %s)", isIdentifier);
-			createLexeme(isIdentifier ? Token.Identifier : Token.Unknown);
+			lexemes ~= new Lexeme(currentToken, current.idup, file, line);
+			currentToken = Token.Unknown;
+		
+			//writefln("created lexeme: %s", lexemes[$ - 1].description);
 		}
+		
+		current.length = 0;
+		skip = SkipType.None;
 	}
 	
 	/* Parse loop */
@@ -210,32 +446,32 @@ immutable(Lexeme[]) lex (string file) {
 			
 			case SkipType.String:
 				if (lastChar != '\\' && ch == '"') {
-					createLexeme(Token.String);
+					createLexeme();
 					continue;
 				} else if (ch == '\\' && lastChar == '\\') {
 					// hide escaped backslashes to avoid parsing problems
 					ch = '\0';
 				}
 				
-				current.put(ch);
+				current ~= ch;
 				continue;
 			
 			case SkipType.WYSIWYGString:
 				if (ch == closingDelimiter) {
-					createLexeme(Token.String);
+					createLexeme();
 					continue;
 				}
 				
-				current.put(ch);
+				current ~= ch;
 				continue;
 			
 			case SkipType.HexString:
 				if (ch == '"') {
-					createLexeme(Token.String);
+					createLexeme();
 					continue;
 				}
 				
-				current.put(ch);
+				current ~= ch;
 				continue;
 			
 			case SkipType.DelimitedString:
@@ -274,12 +510,12 @@ immutable(Lexeme[]) lex (string file) {
 						if (nesting != 0)
 							errorOut("mismatched quotes and string delimiters %s and %s", openingDelimiter, closingDelimiter);
 					
-						createLexeme(Token.String);
+						createLexeme();
 						continue;
 					}
 				}
 				
-				current.put(ch);
+				current ~= ch;
 				continue;
 			
 			case SkipType.TokenString:
@@ -287,24 +523,24 @@ immutable(Lexeme[]) lex (string file) {
 					++nesting;
 				else if (ch == '}') {
 					if (--nesting == 0) {
-						createLexeme(Token.String);
+						createLexeme();
 						continue;
 					}
 				}
 				
-				current.put(ch);
+				current ~= ch;
 				continue;
 			
 			case SkipType.CharLiteral:
 				if (lastChar != '\\' && ch == '\'') {
-					createLexeme(Token.Character);
+					createLexeme();
 					continue;
 				} else if (ch == '\\' && lastChar == '\\') {
 					// hide escaped backslashes to avoid parsing problems
 					ch = '\0';
 				}
 				
-				current.put(ch);
+				current ~= ch;
 				continue;
 			}
 			
@@ -312,7 +548,8 @@ immutable(Lexeme[]) lex (string file) {
 			
 			switch (ch) {
 			case '"':
-				// todo: allow tokens immediately before strings
+				createLexeme();
+				
 				switch (lastChar) {
 				case 'r':
 					skip = SkipType.WYSIWYGString;
@@ -332,106 +569,89 @@ immutable(Lexeme[]) lex (string file) {
 				}
 				
 				nesting = 1;
-				current.clear();
+				currentToken = Token.String;
 				continue;
 			
 			case '\'':
-				// todo: allow tokens immediately before characters
+				createLexeme();
 				skip = SkipType.CharLiteral;
-				current.clear();
+				currentToken = Token.Character;
 				continue;
 			
 			case '/':
-				// todo: allow tokens immediately before comments
 				if (lastChar == '/') {
+					// remove the previous forward slash from the token
+					current = current[0 .. $ - 1];
+					createLexeme();
+					
 					skip = SkipType.LineComment;
-					current.clear();
 					continue;
 				}
 				
 				break;
 			
 			case '*':
-				// todo: allow tokens immediately before comments
 				if (lastChar == '/') {
+					// remove the previous forward slash from the token
+					current = current[0 .. $ - 1];
+					createLexeme();
+					
 					skip = SkipType.BlockComment;
-					current.clear();
 					continue;
 				}
 				
 				break;
 			
 			case '+':
-				// todo: allow tokens immediately before comments
 				if (lastChar == '/') {
+					// remove the previous forward slash from the token
+					current = current[0 .. $ - 1];
+					createLexeme();
+					
 					skip = SkipType.NestedComment;
 					nesting = 1;
-					current.clear();
 					continue;
 				}
 				
 				break;
 			
-			case '@':
-				createUnknownLexeme();
-				createLexeme(Token.At, "@");
-				continue;
-			
-			case '(':
-				createUnknownLexeme();
-				createLexeme(Token.LParen, "(");
-				continue;
-			
-			case ')':
-				createUnknownLexeme();
-				createLexeme(Token.RParen, ")");
-				continue;
-			
-			case '{':
-				if (lastChar == 'q') {
-					skip = SkipType.TokenString;
-					nesting = 1;
-					current.clear();
-					continue;
-				}
-				
-				createUnknownLexeme();
-				createLexeme(Token.LBrace, "{");
-				continue;
-			
-			case '}':
-				createUnknownLexeme();
-				createLexeme(Token.RBrace, "}");
-				continue;
-			
-			case '[':
-				createUnknownLexeme();
-				createLexeme(Token.LBracket, "[");
-				continue;
-			
-			case ']':
-				createUnknownLexeme();
-				createLexeme(Token.RBracket, "]");
-				continue;
-			
-			case ':':
-				createUnknownLexeme();
-				createLexeme(Token.Colon, ":");
-				continue;
-			
-			case ';':
-				createUnknownLexeme();
-				createLexeme(Token.Semicolon, ";");
-				continue;
-			
 			default:
-				if (isspace(ch)) {
-					createUnknownLexeme();
-					continue;
-				}
+				;
 			}
 			
-			current.put(ch);
+			auto newContent = current ~ ch;
+			auto symbolToken = tokenForString(current);
+			auto token = tokenForString(newContent);
+			
+			if (token == Token.Unknown && symbolToken != Token.Unknown) {
+				assert(symbolToken == currentToken);
+			
+				// adding this latest character would make an invalid token
+				// we have now maximally munched
+				createLexeme();
+			}
+			
+			if (isspace(ch)) {
+				// space always forcibly delimits lexemes
+				createLexeme();
+				continue;
+			} else if (current.length == 0) {
+				if (ch == '_' || isUniAlpha(ch))
+					currentToken = Token.Identifier;
+				else if (isdigit(ch))
+					currentToken = Token.Number;
+			} else if (currentToken == Token.Identifier) {
+				if (ch != '_' && !isdigit(ch) && !isUniAlpha(ch))
+					// looks like we're on to the next part of an expression
+					createLexeme();
+			}
+			
+			current ~= ch;
+				
+			// TODO: currently numbers will misbehave if followed by operators (with no whitespace)
+			if (currentToken != Token.Identifier && currentToken != Token.Number) {
+				currentToken = tokenForString(current);
+			}
 		}
 	}
 	

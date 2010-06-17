@@ -3,7 +3,7 @@ RUNTIME_SOURCES = objd/nsobject.d objd/objc.d objd/runtime.d objd/types.d
 
 all: objective-d
 
-objective-d:
+objective-d: $(SOURCES)
 	dmd -w -unittest -ofobjective-d $(SOURCES)
 
 check: objective-d
