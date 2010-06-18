@@ -29,7 +29,7 @@ bool process (string[] inputFiles, string outputFile, string[] includePaths) {
 	writeLine("import objd.types;");
 	writeLine();
 	writeLine("// Local reflection facilities");
-	writeLine(`private template MethodReturnTypeAlias (string typename) { mixin("static if (__traits(compiles, " ~ typename ~ ")) alias " ~ typename ~ " MethodReturnTypeAlias; else alias id MethodReturnTypeAlias; "); }`);
+	writeLine(`private template _ObjDMethodReturnTypeAlias (string typename) { mixin("static if (__traits(compiles, " ~ typename ~ ")) alias " ~ typename ~ " _ObjDMethodReturnTypeAlias; else alias id _ObjDMethodReturnTypeAlias; "); }`);
 	
 	auto success = true;
 	foreach (inputFile; inputFiles) {

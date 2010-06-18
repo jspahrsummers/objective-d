@@ -598,16 +598,14 @@ private immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 			errorOut(next, "expected message name");
 	}
 	
-	// TODO: the message return type needs to actually be determined
 	// .msgSend!(
 	output ~= newToken(".");
 	output ~= newIdentifier("msgSend");
 	output ~= newToken("!");
 	output ~= newToken("(");
 	
-	// MethodReturnTypeAlias!("_objd_sel_methodNameWith__rettype")
-	//output ~= objdNamespace();
-	output ~= newIdentifier("MethodReturnTypeAlias");
+	// _ObjDMethodReturnTypeAlias!("_objd_sel_methodNameWith__rettype")
+	output ~= newIdentifier("_ObjDMethodReturnTypeAlias");
 	output ~= newToken("!");
 	output ~= newToken("(");
 	output ~= newString(selectorToIdentifier(selector) ~ "_rettype");
@@ -711,69 +709,3 @@ private immutable(Lexeme[]) parseType (ref immutable(Lexeme)[] lexemes) {
 	
 	return assumeUnique(type);
 }
-	
-	/+
-	/* Semantic parsing */
-	
-	void parseClassMethod () {
-		parseMethod();
-	}
-	
-	void parseMethod () {
-		auto lparen = pop();
-		if (lparen.token != Token.LParen)
-			errorOut(lparen, "expected (");
-		
-		immutable(Lexeme)[] returnType;
-		for (;;) {
-			auto next = pop();
-			if (next.token == Token.RParen)
-				break;
-			else
-				returnType ~= next;
-		}
-		
-		auto firstWord = pop();
-		if (firstWord.token != Token.Identifier)
-			errorOut(firstWord, "expected method name");
-		
-		auto selector = firstWord.content.dup;
-		Parameter[] parameters;
-		
-		for (;;) {
-			auto next = peek();
-			if (next is null)
-				errorOut(next, "expected {");
-			else if (next.token == Token.LBrace)
-				break;
-			
-			pop();
-			if (next.token == Token.Colon) {
-				selector ~= ":";
-				parameters ~= parseParameter();
-			} else if (next.token == Token.Identifier)
-				selector ~= next.content;
-			else
-				errorOut(next, "expected parameter or method name");
-		}
-		
-		outFD.write('\t');
-		foreach (lexeme; returnType)
-			writeLexeme(lexeme);
-		
-		outFD.writef("%s (id self, SEL cmd", selectorToMethodName(assumeUnique(selector)));
-		foreach (ref param; parameters) {
-			outFD.write(", ");
-		
-			foreach (lexeme; param.type)
-				writeLexeme(lexeme);
-			
-			outFD.write(param.name);
-		}
-		
-		outFD.write(") ");
-		
-		// recursively parse method body
-		parseNested();
-	}
-	+/
