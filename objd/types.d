@@ -21,7 +21,7 @@ public:
 		assert(cls !is null);
 		
 		Method method = null;
-		writefln("invoking method %s", cmd);
+		writefln("invoking method %s with return type %s", cmd, typeid(T));
 		do {
 			auto item = cmd in cls.methods;
 			if (item) {

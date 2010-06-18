@@ -18,6 +18,10 @@ import objd.nsobject;
 	return self;
 }
 
+- (int)nonIDReturnType {
+	return 5;
+}
+
 @end
 
 @objc NSString;
@@ -50,4 +54,6 @@ void main () {
 	
 	[str release];
 	[pool drain];
+	
+	assert([obj nonIDReturnType] == 5);
 }
