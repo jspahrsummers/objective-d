@@ -27,9 +27,7 @@ import std.stdio;
 }
 
 - (bool)isKindOfClass:(Class)otherClass {
-	writefln("%s%s", cmd, otherClass);
 	foreach (const Class cls; self.isa) {
-		writefln("checking against %s", cls);
 		if (cls == otherClass)
 			return true;
 	}
