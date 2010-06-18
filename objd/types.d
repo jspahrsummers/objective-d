@@ -48,11 +48,11 @@ public:
 		}
 		
 		//enforce(typeid(T) == method.returnType, format("requested return type %s does not match defined return type %s for method %s", typeid(T), method.returnType, method.selector));
-		enforce(A.length == method.argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", method.selector, A.length, method.argumentTypes.length));
-		
-		foreach (i, type; A) {
-			enforce(typeid(type) == method.argumentTypes[i] || typeid(const type) == method.argumentTypes[i], format("argument %s of type %s does not match defined parameter type %s for method %s", i + 1, typeid(type), method.argumentTypes[i], method.selector));
-		}
+		//enforce(A.length == method.argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", method.selector, A.length, method.argumentTypes.length));
+		//
+		//foreach (i, type; A) {
+		//	enforce(typeid(type) == method.argumentTypes[i] || typeid(const type) == method.argumentTypes[i], format("argument %s of type %s does not match defined parameter type %s for method %s", i + 1, typeid(type), method.argumentTypes[i], method.selector));
+		//}
 		
 		auto impl = cast(T function (id, SEL, A))(method.implementation);
 		static if (is(T == void))

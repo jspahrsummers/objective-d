@@ -306,8 +306,14 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 		output ~= method.returnType;
 		output ~= newToken("(");
 		
-		// id self, SEL cmd
-		output ~= classInstance;
+		if (method.classMethod)
+			// ClassName
+			output ~= metaClass;
+		else
+			// ClassNameInst
+			output ~= classInstance;
+			
+		// self, SEL cmd
 		output ~= newIdentifier("self");
 		output ~= newToken(",");
 		output ~= newIdentifier("SEL");
@@ -323,10 +329,7 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 		// ) /* function */
 		output ~= newToken(")");
 		
-		// { /* body /* }
-		output ~= newToken("{");
 		output ~= method.implementationBody;
-		output ~= newToken("}");
 		
 		// ) /* addMethod */ ;
 		output ~= newToken(")");
@@ -477,10 +480,12 @@ private immutable(Lexeme[]) parseImplementationBody (ref immutable(Lexeme)[] lex
 		switch (lexemes[0].token) {
 		case Token.LBrace:
 			++nesting;
-			break;
+			goto default;
 		
 		case Token.RBrace:
-			--nesting;
+			if (--nesting > 0)
+				goto default;
+			
 			break;
 			
 		case Token.ObjD_selector:
