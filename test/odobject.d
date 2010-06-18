@@ -56,4 +56,15 @@ void main () {
 	assert(obj.msgSend!bool(sel_registerName("isKindOfClass:"), MyClass));
 	assert(!obj.msgSend!bool(sel_registerName("isMemberOfClass:"), ODObject));
 	assert(obj.msgSend!bool(sel_registerName("isMemberOfClass:"), MyClass));
+	
+	assert([MyClass class] is MyClass);
+	// parsing needs improvement... message sends with identifiers don't work so hot
+	//assert([MyClass isSubclassOfClass:ODObject]);
+	
+	id obj2 = [MyClass new];
+	assert(obj2 !is null);
+	//assert([obj2 isKindOfClass:ODObject]);
+	//assert([obj2 isKindOfClass:MyClass]);
+	//assert(![obj2 isMemberOfClass:ODObject]);
+	//assert([obj2 isMemberOfClass:MyClass]);
 }
