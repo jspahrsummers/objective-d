@@ -29,7 +29,18 @@ bool process (string[] inputFiles, string outputFile, string[] includePaths) {
 	writeLine("import objd.types;");
 	writeLine();
 	writeLine("// Local reflection facilities");
-	writeLine(`private template _ObjDMethodReturnTypeAlias (string typename) { mixin("static if (__traits(compiles, " ~ typename ~ ")) alias " ~ typename ~ " _ObjDMethodReturnTypeAlias; else alias id _ObjDMethodReturnTypeAlias; "); }`);
+	writeLine(`private template _objDMethodReturnTypeAlias (string typename) { mixin("static if (is(" ~ typename ~ ")) alias " ~ typename ~ " _objDMethodReturnTypeAlias; else alias id _objDMethodReturnTypeAlias; "); }`);
+	writeLine(`
+		private mixin template _objDAliasTypeToSelectorReturnType (T, string selector, string returnTypeName) {
+			mixin("
+				static if (!is(" ~ returnTypeName ~ ")) {
+					alias " ~ T.stringof ~ " " ~ returnTypeName ~ ";
+				} else {
+					static assert(is(" ~ returnTypeName ~ " == " ~ T.stringof ~ "), \"conflicting return types for selector " ~ selector ~ "\");
+				}
+			");
+		}
+	`);
 	
 	auto success = true;
 	foreach (inputFile; inputFiles) {

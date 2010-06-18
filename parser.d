@@ -337,10 +337,17 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	output ~= newToken("}");
 	
 	foreach (method; methods) {
-		// alias method_return_type _objd_sel_methodNameWith__rettype;
-		output ~= newIdentifier("alias");
+		// mixin _objDAliasTypeToSelectorReturnType!(method_return_type, "selector:name:", "_objd_sel_methodNameWith__rettype");
+		output ~= newIdentifier("mixin");
+		output ~= newIdentifier("_objDAliasTypeToSelectorReturnType");
+		output ~= newToken("!");
+		output ~= newToken("(");
 		output ~= method.returnType;
-		output ~= newIdentifier(selectorToIdentifier(method.selector) ~ "_rettype");
+		output ~= newToken(",");
+		output ~= newString(method.selector);
+		output ~= newToken(",");
+		output ~= newString(selectorToIdentifier(method.selector) ~ "_rettype");
+		output ~= newToken(")");
 		output ~= newToken(";");
 	}
 	
@@ -604,8 +611,8 @@ private immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	output ~= newToken("!");
 	output ~= newToken("(");
 	
-	// _ObjDMethodReturnTypeAlias!("_objd_sel_methodNameWith__rettype")
-	output ~= newIdentifier("_ObjDMethodReturnTypeAlias");
+	// _objDMethodReturnTypeAlias!("_objd_sel_methodNameWith__rettype")
+	output ~= newIdentifier("_objDMethodReturnTypeAlias");
 	output ~= newToken("!");
 	output ~= newToken("(");
 	output ~= newString(selectorToIdentifier(selector) ~ "_rettype");
