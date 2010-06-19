@@ -102,7 +102,6 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 		// Constructor
 		// Destructor
 		// Invariant
-		// UnitTest
 		// SharedStaticConstructor
 		// SharedStaticDestructor
 		// ConditionalDeclaration
@@ -125,6 +124,13 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 			
 			output ~= lexemes[0];
 			lexemes = lexemes[1 .. $];
+			break;
+		
+		case "unittest":
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			
+			output ~= parseBlockStatement(lexemes);
 			break;
 		
 		default:
