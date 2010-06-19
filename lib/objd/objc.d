@@ -8,11 +8,7 @@ import std.string;
 import std.traits;
 
 private extern (System) {
-	/* Basic types */
-	alias int NSInteger;
-	alias uint NSUInteger;
-	alias int BOOL;
-	
+	/* Cross-platform definitions */
 	invariant YES = true;
 	invariant NO = false;
 
@@ -20,19 +16,27 @@ private extern (System) {
 	// Objective-D provides an id wrapper (below) which can be used normally
 	alias void* objc_id;
 	alias objc_id objc_Class;
-
-	/* Selectors */
-	struct objc_selector {}
-	alias objc_selector* SEL;
 	
-	/* Message sending */
-	objc_id objc_msgSend (objc_id, SEL, ...);
+	/* Platform-specific definitions */
+	version (darwin) {
+		/* Basic types */
+		alias int NSInteger;
+		alias uint NSUInteger;
+		alias int BOOL;
 	
-	/* Reflection */
-	const(char)* class_getName (objc_Class);
-	objc_id objc_getClass (const char*);
-	const(char)* object_getClassName (objc_id);
-	SEL sel_registerName (const char*);
+		/* Selectors */
+		struct objc_selector {}
+		alias objc_selector* SEL;
+		
+		/* Message sending */
+		objc_id objc_msgSend (objc_id, SEL, ...);
+		
+		/* Reflection */
+		const(char)* class_getName (objc_Class);
+		objc_id objc_getClass (const char*);
+		const(char)* object_getClassName (objc_id);
+		SEL sel_registerName (const char*);
+	}
 }
 
 alias id Class;
@@ -47,7 +51,7 @@ public:
 	typeof(this) msgSend(T, A...)(objd.types.SEL cmd, A args)
 		if (is(T == objd.types.id) || is(T : id))
 	{
-		extern(C) objc_id function (objc_id, SEL, A) funcptr;
+		extern(System) objc_id function (objc_id, SEL, A) funcptr;
 		funcptr = cast(typeof(funcptr))&objc_msgSend;
 		
 		auto ret = funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
@@ -57,7 +61,7 @@ public:
 	T msgSend(T, A...)(objd.types.SEL cmd, A args)
 		if (!(is(T == objd.types.id) || is(T : id)))
 	{
-		extern(C) T function (objc_id, SEL, A) funcptr;
+		extern(System) T function (objc_id, SEL, A) funcptr;
 		funcptr = cast(typeof(funcptr))&objc_msgSend;
 		
 		static if (is(T == void))
@@ -77,12 +81,15 @@ public:
 		return cast(bool)deconsted.msgSend!(BOOL)(objd.runtime.sel_registerName("isEqual:"), obj.ptr);
 	}
 	
-	override string toString () const {
-		if (ptr is null)
-			return "(null)";
-		else {
-			auto deconsted = cast(Unqual!(typeof(this)))this;
-			return stringFromNSString(deconsted.msgSend!(id)(objd.runtime.sel_registerName("description")));
+	// though the "description" method is rather portable, NSString probably isn't
+	version (darwin) {
+		override string toString () const {
+			if (ptr is null)
+				return "(null)";
+			else {
+				auto deconsted = cast(Unqual!(typeof(this)))this;
+				return stringFromNSString(deconsted.msgSend!(id)(objd.runtime.sel_registerName("description")));
+			}
 		}
 	}
 	
@@ -96,16 +103,19 @@ package:
 	}
 }
 
-string stringFromNSString (id str) {
-	if (str is null || str.ptr is null)
-		return "(null)";
-
-	auto bytes = str.msgSend!(const(char)*)(objd.runtime.sel_registerName("UTF8String"));
-	auto len = strlen(bytes);
+// NSString probably isn't very portable
+version (darwin) {
+	string stringFromNSString (id str) {
+		if (str is null || str.ptr is null)
+			return "(null)";
 	
-	auto newStr = new char[len + 1];
-	strncpy(newStr.ptr, bytes, len);
-	newStr[len] = '\0';
-	
-	return assumeUnique(newStr);
+		auto bytes = str.msgSend!(const(char)*)(objd.runtime.sel_registerName("UTF8String"));
+		auto len = strlen(bytes);
+		
+		auto newStr = new char[len + 1];
+		strncpy(newStr.ptr, bytes, len);
+		newStr[len] = '\0';
+		
+		return assumeUnique(newStr);
+	}
 }
