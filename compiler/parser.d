@@ -6,6 +6,12 @@ import std.traits;
 import exceptions;
 import lexer;
 
+private void LexemeDebug(uint L = __LINE__) (immutable Lexeme lexeme) {
+	debug {
+		writefln("DEBUG: source line %s, lexeme %s", L, lexeme.description);
+	}
+}
+
 private void errorOut(T...)(immutable Lexeme lexeme, T args) {
 	stderr.writef("%s:%s: ", lexeme.file, lexeme.line);
 	stderr.writef(args);
@@ -164,9 +170,8 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	auto next = lexemes[0];
 	if (next.token == Token.Colon) {
 		// class inherits from a superclass
-		auto inheritsL = lexemes[1];
-		if (inheritsL.token != Token.Identifier)
-			errorOut(inheritsL, "expected identifier");
+		lexemes = lexemes[1 .. $];
+		auto inheritsL = parseNamespacedIdentifier(lexemes);
 		
 		//  super("ClassName", SuperclassName);
 		output ~= newIdentifier("super");
@@ -176,8 +181,6 @@ private immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 		output ~= inheritsL;
 		output ~= newToken(")");
 		output ~= newToken(";");
-		
-		lexemes = lexemes[2 .. $];
 	} else {
 		//  super("ClassName");
 		output ~= newIdentifier("super");
@@ -548,10 +551,11 @@ private immutable(Lexeme[]) parseSelector (ref immutable(Lexeme)[] lexemes) {
 
 private immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	// TODO: this will break with associative arrays and some slices
-		
 	auto lbracket = lexemes[0];
 	assert(lbracket.token == Token.LBracket);
+	
 	lexemes = lexemes[1 .. $];
+	auto original = lexemes;
 	
 	immutable(Lexeme)[] output;
 	
@@ -566,29 +570,41 @@ private immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 		return [ lbracket, receiver ];
 	}
 	
-	auto firstWord = lexemes[1];
-	if ((!recursive && receiver.token != Token.Identifier) || firstWord.token != Token.Identifier) {
+	immutable(Lexeme[]) parseToEndBracket (immutable(Lexeme)[] start) {
 		// this is apparently *not* a message send
-		output = lbracket ~ output;
+		immutable(Lexeme)[] ret = [ lbracket ];
 		
 		uint nesting = 1;
 		do {
-			if (lexemes[0].token == Token.RBracket)
+			if (start[0].token == Token.RBracket)
 				--nesting;
-			else if (lexemes[0].token == Token.LBracket)
+			else if (start[0].token == Token.LBracket)
 				++nesting;
 			
-			output ~= lexemes[0];
-			lexemes = lexemes[1 .. $];
+			ret ~= start[0];
+			start = start[1 .. $];
 		} while (nesting > 0);
 		
-		return output;
+		lexemes = start;
+		return ret;
 	}
 	
-	lexemes = lexemes[2 .. $];
+	// TODO: is .5 valid syntax for numbers? if so, this might break
+	if (!recursive && receiver.token != Token.Identifier && receiver.token != Token.Dot)
+		return parseToEndBracket(original);
+	
+	immutable(Lexeme[]) receiverL = (receiver.token == Token.Identifier ? parseNamespacedIdentifier(lexemes) : null);
+	if (receiver.token != Token.Identifier)
+		lexemes = lexemes[1 .. $];
+	
+	auto firstWord = lexemes[0];
+	if (firstWord.token != Token.Identifier)
+		return parseToEndBracket(original);
+	
+	lexemes = lexemes[1 .. $];
 	if (receiver.token == Token.Identifier) {
 		// include the receiver of the message
-		output ~= receiver;
+		output ~= receiverL;
 	}
 	
 	auto selector = firstWord.content.idup;
@@ -720,4 +736,30 @@ private immutable(Lexeme[]) parseType (ref immutable(Lexeme)[] lexemes) {
 	}
 	
 	return assumeUnique(type);
+}
+
+private immutable(Lexeme[]) parseNamespacedIdentifier (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	if (lexemes[0].token == Token.Dot) {
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+	}
+	
+	for (;;) {
+		if (lexemes[0].token == Token.Identifier) {
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			
+			if (lexemes[0].token != Token.Dot)
+				break;
+			
+			// continue with another sublevel
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+		} else
+			errorOut(lexemes[0], "expected identifier");
+	}
+	
+	return assumeUnique(output);
 }

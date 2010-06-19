@@ -61,7 +61,10 @@ public:
 	
 	/* Reflection */
 	bool addMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
-		//writefln("adding method %s to %s", name, this.name);
+		debug {
+			//writefln("adding method %s to %s", name, this.name);
+		}
+		
 		if (name in methods)
 			return false;
 		else {

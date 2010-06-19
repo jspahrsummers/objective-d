@@ -14,7 +14,7 @@ void main () {
 	auto pool = [NSAutoreleasePool new];
 	assert(pool !is null);
 	
-	// this won't work just comparing the result
+	// this won't work just comparing the result (TODO: it could)
 	// Objective-C objects are always wrapped in new D objects
 	assert([pool class].toString() == "NSAutoreleasePool");
 	

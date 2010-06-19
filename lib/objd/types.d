@@ -21,7 +21,10 @@ public:
 		assert(cls !is null);
 		
 		Method method = null;
-		writefln("invoking method %s with return type %s", cmd, typeid(T));
+		debug {
+			writefln("invoking method %s with return type %s", cmd, typeid(T));
+		}
+		
 		do {
 			auto item = cmd in cls.methods;
 			if (item) {
@@ -33,7 +36,10 @@ public:
 		} while (cls !is null);
 		
 		if (!method) {
-			writefln("couldn't find method %s", cmd);
+			debug {
+				writefln("couldn't find method %s", cmd);
+			}
+			
 			auto doesNotRecognize = sel_registerName("doesNotRecognizeSelector:");
 			if (cmd == doesNotRecognize) {
 				abort();
@@ -47,6 +53,7 @@ public:
 				return T.init;
 		}
 		
+		// TODO: this needs to be figured out and re-enabled for type safety
 		//enforce(typeid(T) == method.returnType, format("requested return type %s does not match defined return type %s for method %s", typeid(T), method.returnType, method.selector));
 		//enforce(A.length == method.argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", method.selector, A.length, method.argumentTypes.length));
 		//
