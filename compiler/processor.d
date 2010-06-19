@@ -26,7 +26,7 @@
 import std.stdio;
 import exceptions;
 import lexer;
-import parser;
+import parser.start;
 
 bool process (string[] inputFiles, string outputFile, string[] includePaths) {
 	File outFD;

@@ -1,5 +1,5 @@
 /*
- * exceptions.d
+ * expressions.d
  * Objective-D compiler
  *
  * Copyright (c) 2010 Justin Spahr-Summers <Justin.SpahrSummers@gmail.com>
@@ -23,16 +23,6 @@
  * SOFTWARE.
  */
 
-import lexer;
-import std.string;
-
-class ParseException : Exception {
-public:
-    this (string msg) {
-        super(msg);
-    }
-}
-
-void errorOut(T...)(immutable Lexeme lexeme, T args) {
-	throw new ParseException(format("%s:%s: ", lexeme.file, lexeme.line) ~ format(args) ~ format(" near %s\n", lexeme.content));
-}
+module parser.expressions;
+import exceptions;
+import parser.lexemes;

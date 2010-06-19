@@ -1,5 +1,5 @@
 /*
- * parser.d
+ * start.d
  * Objective-D compiler
  *
  * Copyright (c) 2010 Justin Spahr-Summers <Justin.SpahrSummers@gmail.com>
@@ -23,92 +23,12 @@
  * SOFTWARE.
  */
 
-import std.array;
-import std.contracts;
-import std.stdio;
-import std.string;
-import std.traits;
+module parser.start;
 import exceptions;
-import lexer;
-
-private void LexemeDebug(uint L = __LINE__) (immutable Lexeme lexeme) {
-	debug {
-		writefln("DEBUG: source line %s, lexeme %s", L, lexeme.description);
-	}
-}
-
-private void errorOut(T...)(immutable Lexeme lexeme, T args) {
-	throw new ParseException(format("%s:%s: ", lexeme.file, lexeme.line) ~ format(args) ~ format(" near %s\n", lexeme.content));
-}
-
-private immutable(Lexeme) newToken (dstring content) {
-	return new Lexeme(tokenForString(content), content);
-}
-
-private immutable(Lexeme) newIdentifier (dstring content) {
-	return new Lexeme(Token.Identifier, content, null, 0);
-}
-
-private immutable(Lexeme) newString (dstring content) {
-	return new Lexeme(Token.String, content, null, 0);
-}
-
-private pure auto selectorToIdentifier (dstring selector) {
-	auto ret = new dchar[selector.length];
-	foreach (i, ch; selector) {
-		if (ch == ':')
-			ret[i] = '_';
-		else
-			ret[i] = ch;
-	}
-	
-	return "_objd_sel_" ~ assumeUnique(ret);
-}
-
-private pure auto metaClassName (dstring name) {
-	return "Meta" ~ name;
-}
-
-private pure auto classInstanceName (dstring name) {
-	return name ~ "Inst";
-}
-
-private immutable(Lexeme[]) objdNamespace (dstring moduleName = "runtime") {
-	return [
-		newIdentifier("objd"),
-		newToken("."),
-		newIdentifier(moduleName),
-		newToken(".")
-	];
-}
-
-private immutable struct Parameter {
-public:
-	immutable Lexeme[] type;
-	dstring name;
-	
-	this (immutable Lexeme[] type, dstring name) {
-		this.type = type;
-		this.name = name;
-	}
-}
-
-private immutable class Method {
-public:
-	immutable Lexeme[] returnType;
-	dstring selector;
-	immutable Lexeme[] implementationBody;
-	immutable Parameter[] parameters;
-	bool classMethod;
-	
-	this (bool classMethod, immutable Lexeme[] returnType, dstring selector, immutable Parameter[] parameters, immutable Lexeme[] implementationBody) {
-		this.returnType = returnType;
-		this.selector = selector;
-		this.parameters = parameters;
-		this.implementationBody = implementationBody;
-		this.classMethod = classMethod;
-	}
-}
+import parser.expressions;
+import parser.lexemes;
+import parser.objd;
+import std.contracts;
 
 immutable(Lexeme[]) parse (immutable Lexeme[] lexemes) {
 	auto ret = parseTopLevel(lexemes);

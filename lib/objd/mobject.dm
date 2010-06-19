@@ -158,7 +158,7 @@ public:
 
 unittest {
 	assert([MyClass class] is MyClass);
-	assert(MyClass.msgSend!bool(sel_registerName("isSubclassOfClass:"), MObject));
+	assert([MyClass isSubclassOfClass:MObject]);
 	
 	id obj = [MyClass new];
 	assert(obj !is null);

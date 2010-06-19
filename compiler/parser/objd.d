@@ -1,5 +1,5 @@
 /*
- * exceptions.d
+ * objd.d
  * Objective-D compiler
  *
  * Copyright (c) 2010 Justin Spahr-Summers <Justin.SpahrSummers@gmail.com>
@@ -23,16 +23,35 @@
  * SOFTWARE.
  */
 
-import lexer;
-import std.string;
+module parser.objd;
+import parser.lexemes;
+import std.contracts;
 
-class ParseException : Exception {
-public:
-    this (string msg) {
-        super(msg);
-    }
+pure auto selectorToIdentifier (dstring selector) {
+	auto ret = new dchar[selector.length];
+	foreach (i, ch; selector) {
+		if (ch == ':')
+			ret[i] = '_';
+		else
+			ret[i] = ch;
+	}
+	
+	return "_objd_sel_" ~ assumeUnique(ret);
 }
 
-void errorOut(T...)(immutable Lexeme lexeme, T args) {
-	throw new ParseException(format("%s:%s: ", lexeme.file, lexeme.line) ~ format(args) ~ format(" near %s\n", lexeme.content));
+pure auto metaClassName (dstring name) {
+	return "Meta" ~ name;
+}
+
+pure auto classInstanceName (dstring name) {
+	return name ~ "Inst";
+}
+
+immutable(Lexeme[]) objdNamespace (dstring moduleName = "runtime") {
+	return [
+		newIdentifier("objd"),
+		newToken("."),
+		newIdentifier(moduleName),
+		newToken(".")
+	];
 }
