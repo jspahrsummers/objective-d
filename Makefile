@@ -33,7 +33,7 @@ export D_OBJCFLAGS=-L-lobjc -L-framework -LFoundation
 
 .PHONY: all check clean compiler install lib test
 
-all: compiler lib
+all: | compiler lib
 check: test
 
 clean:
@@ -48,8 +48,8 @@ install:
 	cd compiler && $(MAKE) install
 	cd lib && $(MAKE) install
 
-lib:
+lib: | compiler
 	cd lib && $(MAKE)
 
-test: compiler lib
+test: | compiler lib
 	cd test && $(MAKE)
