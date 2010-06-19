@@ -62,10 +62,6 @@ immutable(Lexeme[]) parseTopLevel (ref immutable(Lexeme)[] lexemes) {
 		
 		case Token.LBracket:
 			output ~= parseMessageSend(lexemes);
-			
-			// skip closing bracket
-			assert(lexemes[0].token == Token.RBracket);
-			lexemes = lexemes[1 .. $];
 			break;
 		
 		default:

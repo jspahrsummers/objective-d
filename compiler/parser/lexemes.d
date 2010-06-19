@@ -27,9 +27,9 @@ module parser.lexemes;
 public import lexer;
 import std.stdio;
 
-package void LexemeDebug(uint L = __LINE__) (immutable Lexeme lexeme) {
+package void LexemeDebug(string F = __FILE__, uint L = __LINE__) (immutable Lexeme lexeme) {
 	debug {
-		writefln("DEBUG: source line %s, lexeme %s", L, lexeme.description);
+		writefln("DEBUG: in %s:%s, lexeme %s", F, L, lexeme.description);
 	}
 }
 

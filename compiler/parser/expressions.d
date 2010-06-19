@@ -26,6 +26,7 @@
 module parser.expressions;
 import exceptions;
 import parser.lexemes;
+import parser.objd;
 import std.contracts;
 
 immutable(Lexeme[]) parseDType (ref immutable(Lexeme)[] lexemes) {
@@ -368,6 +369,10 @@ immutable(Lexeme[]) parseUnaryExpression (ref immutable(Lexeme)[] lexemes) {
 		output ~= parseUnaryExpression(lexemes);
 		break;
 	
+	case Token.LBracket:
+		output ~= parseMessageSend(lexemes);
+		break;
+	
 	case Token.Identifier:
 		bool found = true;
 		switch (lexemes[0].content) {
@@ -593,8 +598,11 @@ immutable(Lexeme[]) parsePrimaryExpression (ref immutable(Lexeme)[] lexemes) {
 		lexemes = lexemes[1 .. $];
 		break;
 	
+	case Token.LBracket:
+		output ~= parseArrayLiteral(lexemes);
+		break;
+	
 	// TODO:
-	// ArrayLiteral
 	// AssocArrayLiteral
 	// FunctionLiteral
 	// AssertExpression
@@ -607,6 +615,26 @@ immutable(Lexeme[]) parsePrimaryExpression (ref immutable(Lexeme)[] lexemes) {
 	default:
 		errorOut(lexemes[0], "expected expression or identifier");
 	}
+	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseArrayLiteral (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	if (lexemes[0].token != Token.LBracket)
+		errorOut(lexemes[0], "expected [");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
+	
+	output ~= parseArgumentList(lexemes);
+	
+	if (lexemes[0].token != Token.RBracket)
+		errorOut(lexemes[0], "expected ]");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
 	
 	return assumeUnique(output);
 }

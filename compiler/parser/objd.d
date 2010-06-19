@@ -455,10 +455,6 @@ immutable(Lexeme[]) parseImplementationBody (ref immutable(Lexeme)[] lexemes) {
 		
 		case Token.LBracket:
 			output ~= parseMessageSend(lexemes);
-			
-			// skip closing bracket
-			assert(lexemes[0].token == Token.RBracket);
-			lexemes = lexemes[1 .. $];
 			break;
 		
 		default:
@@ -507,73 +503,39 @@ immutable(Lexeme[]) parseSelector (ref immutable(Lexeme)[] lexemes) {
 }
 
 immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
+	auto save = lexemes;
+	
 	// TODO: this will break with associative arrays and some slices
 	auto lbracket = lexemes[0];
 	assert(lbracket.token == Token.LBracket);
 	
-	lexemes = lexemes[1 .. $];
-	auto original = lexemes;
-	
 	immutable(Lexeme)[] output;
+	lexemes = lexemes[1 .. $];
 	
-	auto receiver = lexemes[0];
-	bool recursive = false;
-	if (receiver.token == Token.LBracket) {
-		// possibly a recursive message send
-		output ~= parseMessageSend(lexemes);
-		recursive = true;
-	} else if (receiver.token == Token.RBracket) {
-		// array slice/vector operation syntax
-		return [ lbracket, receiver ];
+	// receiver of the message
+	output ~= parseAssignExpression(lexemes);
+	
+	if (lexemes[0].token == Token.Comma) {
+		// this seems to be an array literal
+		lexemes = save;
+		return parseArrayLiteral(lexemes);
 	}
-	
-	immutable(Lexeme[]) parseToEndBracket (immutable(Lexeme)[] start) {
-		// this is apparently *not* a message send
-		immutable(Lexeme)[] ret = [ lbracket ];
-		
-		uint nesting = 1;
-		do {
-			if (start[0].token == Token.RBracket)
-				--nesting;
-			else if (start[0].token == Token.LBracket)
-				++nesting;
-			
-			ret ~= start[0];
-			start = start[1 .. $];
-		} while (nesting > 0);
-		
-		lexemes = start;
-		return ret;
-	}
-	
-	// TODO: is .5 valid syntax for numbers? if so, this might break
-	if (!recursive && receiver.token != Token.Identifier && receiver.token != Token.Dot)
-		return parseToEndBracket(original);
-	
-	immutable(Lexeme[]) receiverL = (receiver.token == Token.Identifier ? parsePrimaryExpression(lexemes) : null);
-	if (receiver.token != Token.Identifier)
-		lexemes = lexemes[1 .. $];
 	
 	auto firstWord = lexemes[0];
 	if (firstWord.token != Token.Identifier)
-		return parseToEndBracket(original);
+		errorOut(firstWord, "expected identifier");
 	
 	lexemes = lexemes[1 .. $];
-	if (receiver.token == Token.Identifier) {
-		// include the receiver of the message
-		output ~= receiverL;
-	}
-	
 	auto selector = firstWord.content.idup;
 	immutable(Lexeme)[][] arguments;
 	
 	for (;;) {
 		auto next = lexemes[0];
+		lexemes = lexemes[1 .. $];
+		
 		if (next.token == Token.RBracket)
 			break;
-			
-		lexemes = lexemes[1 .. $];
-		if (next.token == Token.Colon) {
+		else if (next.token == Token.Colon) {
 			selector ~= ":";
 			auto expr = parseExpression(lexemes);
 			arguments ~= expr;
