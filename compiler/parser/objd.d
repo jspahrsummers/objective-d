@@ -27,6 +27,7 @@ module parser.objd;
 import exceptions;
 import parser.expressions;
 import parser.lexemes;
+import parser.statements;
 import std.contracts;
 
 pure auto selectorToIdentifier (dstring selector) {
@@ -421,52 +422,8 @@ immutable(Method) parseMethod (ref immutable(Lexeme)[] lexemes, bool classMethod
 			errorOut(lexemes[0], "expected method name");
 	}
 	
-	auto impl = parseImplementationBody(lexemes);
+	auto impl = parseFunctionBody(lexemes);
 	return new Method(classMethod, returnType, selector, parameters, impl);
-}
-
-immutable(Lexeme[]) parseImplementationBody (ref immutable(Lexeme)[] lexemes) {
-	immutable(Lexeme)[] output;
-	
-	auto lbrace = lexemes[0];
-	if (lbrace.token != Token.LBrace)
-		errorOut(lbrace, "expected {");
-	
-	output ~= lbrace;
-	
-	lexemes = lexemes[1 .. $];
-	uint nesting = 1;
-	do {
-		switch (lexemes[0].token) {
-		case Token.LBrace:
-			++nesting;
-			goto default;
-		
-		case Token.RBrace:
-			if (--nesting > 0)
-				goto default;
-			
-			break;
-			
-		case Token.ObjD_selector:
-			lexemes = lexemes[1 .. $];
-			output ~= parseSelector(lexemes);
-			break;
-		
-		case Token.LBracket:
-			output ~= parseMessageSend(lexemes);
-			break;
-		
-		default:
-			output ~= lexemes[0];
-			lexemes = lexemes[1 .. $];
-		}
-	} while (nesting > 0);
-	
-	output ~= lexemes[0];
-	lexemes = lexemes[1 .. $];
-	
-	return assumeUnique(output);
 }
 	
 immutable(Lexeme[]) parseSelector (ref immutable(Lexeme)[] lexemes) {

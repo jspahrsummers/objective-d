@@ -25,50 +25,14 @@
 
 module parser.start;
 import exceptions;
-import parser.expressions;
+import parser.declarations;
 import parser.lexemes;
-import parser.objd;
 import std.contracts;
 
+// TODO: bounds checking
 immutable(Lexeme[]) parse (immutable Lexeme[] lexemes) {
-	auto ret = parseTopLevel(lexemes);
+	auto ret = parseModule(lexemes);
 	assert(lexemes.length == 0);
 	
 	return ret;
-}
-
-// TODO: bounds checking
-immutable(Lexeme[]) parseTopLevel (ref immutable(Lexeme)[] lexemes) {
-	immutable(Lexeme)[] output;
-
-	while (lexemes.length) {
-		auto lexeme = lexemes[0];
-		
-		switch (lexeme.token) {
-		case Token.ObjD_class:
-			lexemes = lexemes[1 .. $];
-			output ~= parseClass(lexemes);
-			break;
-			
-		case Token.ObjD_objc:
-			lexemes = lexemes[1 .. $];
-			output ~= parseObjectiveCClass(lexemes);
-			break;
-			
-		case Token.ObjD_selector:
-			lexemes = lexemes[1 .. $];
-			output ~= parseSelector(lexemes);
-			break;
-		
-		case Token.LBracket:
-			output ~= parseMessageSend(lexemes);
-			break;
-		
-		default:
-			output ~= lexeme;
-			lexemes = lexemes[1 .. $];
-		}
-	}
-	
-	return assumeUnique(output);
 }

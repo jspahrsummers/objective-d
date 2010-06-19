@@ -29,12 +29,14 @@ import std.c.stdlib;
 import std.stdio;
 import std.string;
 
-class DoesNotRecognizeSelectorException : Exception {
-public:
-	this (string msg) {
-		super(msg);
-	}
-}
+//class DoesNotRecognizeSelectorException : Exception {
+//public:
+//	this (string msg) {
+//		super(msg);
+//	}
+//}
+
+alias Exception DoesNotRecognizeSelectorException;
 
 @class MObject {
 	
@@ -156,18 +158,18 @@ public:
 @class MyClass : MObject {}
 @end
 
-unittest {
-	assert([MyClass class] is MyClass);
-	assert([MyClass isSubclassOfClass:MObject]);
-	
-	id obj = [MyClass new];
-	assert(obj !is null);
-	
-	assert([obj    isKindOfClass:MObject]);
-	assert([obj    isKindOfClass:MyClass]);
-	assert(![obj isMemberOfClass:MObject]);
-	assert([obj  isMemberOfClass:MyClass]);
-	
-	id obj2 = [MyClass new];
-	assert(obj2 !is null);
-}
+//unittest {
+//	assert([MyClass class] is MyClass);
+//	assert([MyClass isSubclassOfClass:MObject]);
+//	
+//	id obj = [MyClass new];
+//	assert(obj !is null);
+//	
+//	assert([obj    isKindOfClass:MObject]);
+//	assert([obj    isKindOfClass:MyClass]);
+//	assert(![obj isMemberOfClass:MObject]);
+//	assert([obj  isMemberOfClass:MyClass]);
+//	
+//	id obj2 = [MyClass new];
+//	assert(obj2 !is null);
+//}
