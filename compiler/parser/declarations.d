@@ -25,6 +25,7 @@
 
 module parser.declarations;
 import exceptions;
+import parser.expressions;
 import parser.lexemes;
 import parser.objd;
 import parser.statements;
@@ -95,7 +96,6 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 		// TODO:
 		// AttributeSpecifier
 		// EnumDeclaration
-		// ClassDeclaration
 		// InterfaceDeclaration
 		// AggregateDeclaration
 		// Declaration
@@ -131,6 +131,10 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 			lexemes = lexemes[1 .. $];
 			
 			output ~= parseBlockStatement(lexemes);
+			break;
+		
+		case "class":
+			output ~= parseClassDeclaration(lexemes);
 			break;
 		
 		default:
@@ -224,6 +228,75 @@ immutable(Lexeme[]) parseDeclaration (ref immutable(Lexeme)[] lexemes) {
 	
 	output ~= parseBasicType(lexemes);
 	output ~= parseDeclarators(lexemes);
+	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseClassDeclaration (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	if (lexemes[0].content != "class")
+		errorOut(lexemes[0], "expected \"class\"");
+	
+	// TODO:
+	// ClassTemplateDeclaration
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
+	
+	if (lexemes[0].token != Token.Identifier)
+		errorOut(lexemes[0], "expected class identifier");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
+	
+	output ~= parseBaseClassList(lexemes);
+	
+	// TODO: ClassBody
+	output ~= parseBlockStatement(lexemes);
+	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseBaseClassList (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	if (lexemes[0].token == Token.Colon) {
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		
+		output ~= parseBaseClasses(lexemes);
+	}
+	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseBaseClasses (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	if (lexemes[0].token == Token.Identifier) {
+		switch (lexemes[0].content) {
+		case "private":
+		case "package":
+		case "public":
+		case "export":
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			break;
+		
+		default:
+			;
+		}
+	}
+	
+	output ~= parsePrimaryExpression(lexemes);
+	
+	if (lexemes[0].token == Token.Comma) {
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		
+		output ~= parseBaseClasses(lexemes);
+	}
 	
 	return assumeUnique(output);
 }

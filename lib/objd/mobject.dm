@@ -29,14 +29,12 @@ import std.c.stdlib;
 import std.stdio;
 import std.string;
 
-//class DoesNotRecognizeSelectorException : Exception {
-//public:
-//	this (string msg) {
-//		super(msg);
-//	}
-//}
-
-alias Exception DoesNotRecognizeSelectorException;
+class DoesNotRecognizeSelectorException : Exception {
+public:
+	this (string msg) {
+		super(msg);
+	}
+}
 
 @class MObject {
 	
