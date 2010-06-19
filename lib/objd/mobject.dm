@@ -23,19 +23,54 @@
  * SOFTWARE.
  */
 
+module objd.mobject;
 import objd.runtime;
+import std.c.stdlib;
 import std.stdio;
+import std.string;
+
+class DoesNotRecognizeSelectorException : Exception {
+public:
+	this (string msg) {
+		super(msg);
+	}
+}
 
 @class MObject {
 	
 }
 
+/* Class methods */
+// + (id) alloc is automatically added by the compiler
+
 + (Class)class {
 	return self;
 }
 
-+ (Class)superclass {
-	return self.superclass;
++ (bool)conformsToProtocol:(immutable Protocol)aProtocol {
+	foreach (p; self.protocols) {
+		if (p == aProtocol)
+			return true;
+	}
+	
+	return false;
+}
+
++ (string)description {
+	return "Class(" ~ self.name ~ ")";
+}
+
++ (void)doesNotRecognizeSelector:(SEL)aSelector {
+	throw new DoesNotRecognizeSelectorException(format("%s does not recognize selector \"%s\"", self.isa, sel_getName(aSelector)));
+}
+
++ (bool)instancesRespondToSelector:(SEL)aSelector {
+	foreach (const Class cls; self) {
+		if (cls.hasMethod(aSelector))
+			return true;
+	}
+	
+	return false;
 }
 
 + (bool)isSubclassOfClass:(Class)otherClass {
@@ -51,12 +86,35 @@ import std.stdio;
 	return [[self alloc] init];
 }
 
++ (Class)superclass {
+	return self.superclass;
+}
+
+/* Instance methods */
 - (Class)class {
 	return self.isa;
 }
 
+- (bool)conformsToProtocol:(immutable Protocol)aProtocol {
+	return [self class].msgSend!(bool)(cmd, aProtocol);
+}
+
+- (string)description {
+	return self.isa.name;
+}
+
+- (void)finalize {}
+
+- (hash_t)hash {
+	return self.toHash();
+}
+
 - (id)init {
 	return self;
+}
+
+- (bool)isEqual:(id)obj {
+	return self is obj;
 }
 
 - (bool)isKindOfClass:(Class)otherClass {
@@ -72,7 +130,26 @@ import std.stdio;
 	return self.isa == otherClass;
 }
 
-- (void)finalize {}
+- (bool)isProxy {
+	return false;
+}
+
+- (bool)respondsToSelector:(SEL)aSelector {
+	foreach (const Class cls; self.isa) {
+		if (cls.hasMethod(aSelector))
+			return true;
+	}
+	
+	return false;
+}
+
+- (id)self {
+	return self;
+}
+
+- (Class)superclass {
+	return self.isa.superclass;
+}
 
 @end
 
