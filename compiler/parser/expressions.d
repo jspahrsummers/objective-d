@@ -585,6 +585,11 @@ immutable(Lexeme[]) parsePrimaryExpression (ref immutable(Lexeme)[] lexemes) {
 		lexemes = lexemes[1 .. $];
 		break;
 	
+	case Token.ObjD_selector:
+		lexemes = lexemes[1 .. $];
+		output ~= parseSelector(lexemes);
+		break;
+	
 	case Token.LParen:
 		output ~= lexemes[0];
 		lexemes = lexemes[1 .. $];

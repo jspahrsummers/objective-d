@@ -4,6 +4,9 @@ SOURCES = exceptions.d lexer.d main.d parser/declarations.d parser/expressions.d
 # binary name
 PRODUCT = objective-d
 
+# additional flags to pass to the D compiler
+DFLAGS+=-debug
+
 .PHONY: all clean install
 
 all: $(PRODUCT)

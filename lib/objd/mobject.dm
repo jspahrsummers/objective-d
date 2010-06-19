@@ -134,6 +134,10 @@ public:
 	return false;
 }
 
+- (id)performSelector:(SEL)aSelector {
+	return self.msgSend!(id)(aSelector);
+}
+
 - (bool)respondsToSelector:(SEL)aSelector {
 	foreach (const Class cls; self.isa) {
 		if (cls.hasMethod(aSelector))

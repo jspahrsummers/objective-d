@@ -63,6 +63,9 @@ void main () {
 	writeln("--- Invoking [obj class] and checking for identity with MyClass");
 	assert([obj class] is MyClass);
 	
+	writeln("--- Invoking [obj performSelector:@selector(class)] and checking for identity with MyClass");
+	assert([obj performSelector:@selector(class)] is MyClass);
+	
 	writeln("--- Sending message with a trailing word");
 	[obj wordsCannot:"trail" inObjectiveC];
 	
