@@ -29,6 +29,11 @@ public import objd.types;
 import std.stdio;
 import std.traits;
 
+enum RUNTIME_MAJOR_VERSION = 0;
+enum RUNTIME_MINOR_VERSION = 1;
+enum RUNTIME_PATCH_VERSION = 0;
+enum RUNTIME_VERSION = RUNTIME_MAJOR_VERSION.stringof ~ "." ~ RUNTIME_MINOR_VERSION.stringof ~ "." ~ RUNTIME_PATCH_VERSION.stringof;
+
 /* Selectors */
 string sel_getName (SEL aSelector) {
 	return aSelector;

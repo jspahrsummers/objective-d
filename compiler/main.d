@@ -29,9 +29,15 @@ import std.getopt;
 import std.stdio;
 import processor;
 
+enum COMPILER_MAJOR_VERSION = 0;
+enum COMPILER_MINOR_VERSION = 1;
+enum COMPILER_PATCH_VERSION = 0;
+enum COMPILER_VERSION = COMPILER_MAJOR_VERSION.stringof ~ "." ~ COMPILER_MINOR_VERSION.stringof ~ "." ~ COMPILER_PATCH_VERSION.stringof;
+
 immutable string defaultOutputFilename = "main.d";
 
 int main (string[] args) {
+	bool printVersion;
 	string outputFile = null;
 	string[] includePaths;
 	string[] inputFiles;
@@ -39,8 +45,14 @@ int main (string[] args) {
 	getopt(args,
 		std.getopt.config.bundling,
 		"of|o", &outputFile,
-		"I", &includePaths
+		"I", &includePaths,
+		"version|v", &printVersion
 	);
+	
+	if (printVersion) {
+		writefln("Objective-D compiler version %s", COMPILER_VERSION);
+		writeln("Copyright (c) 2010 Justin Spahr-Summers");
+	}
 	
 	assert(args.length > 0, "no invocation argument passed");
 	inputFiles = args[1 .. $];
@@ -57,9 +69,15 @@ int main (string[] args) {
 	}
 	
 	if (inputFiles is null || inputFiles.length == 0) {
-		stderr.writefln("No input files provided.");
-		return EXIT_FAILURE;
-	}
+		if (printVersion)
+			return EXIT_SUCCESS;
+		else {
+			// only print an error if the version number wasn't requested
+			stderr.writefln("No input files provided.");
+			return EXIT_FAILURE;
+		}
+	} else if (printVersion)
+		writeln();
 	
 	if (process(inputFiles, outputFile, includePaths))
 		return EXIT_SUCCESS;
