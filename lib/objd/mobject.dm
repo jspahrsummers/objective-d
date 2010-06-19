@@ -96,7 +96,7 @@ public:
 }
 
 - (bool)conformsToProtocol:(immutable Protocol)aProtocol {
-	return [self class].msgSend!(bool)(cmd, aProtocol);
+	return [[self class] conformsToProtocol:aProtocol];
 }
 
 - (string)description {
@@ -163,11 +163,10 @@ unittest {
 	id obj = [MyClass new];
 	assert(obj !is null);
 	
-	// parsing needs improvement... message sends with identifiers don't work so hot
-	assert(obj.msgSend!bool(sel_registerName("isKindOfClass:"), MObject));
-	assert(obj.msgSend!bool(sel_registerName("isKindOfClass:"), MyClass));
-	assert(!obj.msgSend!bool(sel_registerName("isMemberOfClass:"), MObject));
-	assert(obj.msgSend!bool(sel_registerName("isMemberOfClass:"), MyClass));
+	assert([obj    isKindOfClass:MObject]);
+	assert([obj    isKindOfClass:MyClass]);
+	assert(![obj isMemberOfClass:MObject]);
+	assert([obj  isMemberOfClass:MyClass]);
 	
 	id obj2 = [MyClass new];
 	assert(obj2 !is null);

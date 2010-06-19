@@ -112,6 +112,7 @@ bool process (string[] inputFiles, string outputFile, string[] includePaths) {
 					newLine();
 			}
 		} catch (ParseException ex) {
+			writeln(ex.msg);
 			success = false;
 		}
 	}

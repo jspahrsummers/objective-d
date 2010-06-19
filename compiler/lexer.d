@@ -340,10 +340,10 @@ enum Token {
 	PowEq,
 	
 	// ~
-	BitwiseNot,
+	Tilde,
 	
 	// ~=
-	BitwiseNotEq,
+	TildeEq,
 }
 
 private enum SkipType {
@@ -424,8 +424,8 @@ static this () {
 		"^="d   : Token.XorEq,
 		"^^"d   : Token.Pow,
 		"^^="d  : Token.PowEq,
-		"~"d    : Token.BitwiseNot,
-		"~="d   : Token.BitwiseNotEq
+		"~"d    : Token.Tilde,
+		"~="d   : Token.TildeEq
 	];
 	
 	tokenLookupTable.rehash;
@@ -659,9 +659,7 @@ immutable(Lexeme[]) lex (string file) {
 	
 	/* Helper nested functions */
 	void errorOut(T...)(T args) {
-		stderr.writef("%s:%s: ", file, line);
-		stderr.writefln(args);
-		throw new ParseException;
+		throw new ParseException(format("%s:%s: ", file, line) ~ format(args) ~ "\n");
 	}
 	
 	void createLexeme () {
