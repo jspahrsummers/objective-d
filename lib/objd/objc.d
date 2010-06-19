@@ -7,7 +7,7 @@ import std.stdio;
 import std.string;
 import std.traits;
 
-private extern (System) {
+extern (System) {
 	/* Cross-platform definitions */
 	invariant YES = true;
 	invariant NO = false;
@@ -37,6 +37,11 @@ private extern (System) {
 		const(char)* object_getClassName (objc_id);
 		SEL sel_registerName (const char*);
 	}
+	
+	// internal template used to cast objc_msgSend to the correct type
+	private template FuncPtr(R, A...) {
+		alias R function (A...) FuncPtr;
+	}
 }
 
 alias id Class;
@@ -51,8 +56,7 @@ public:
 	typeof(this) msgSend(T, A...)(objd.types.SEL cmd, A args)
 		if (is(T == objd.types.id) || is(T : id))
 	{
-		extern(System) objc_id function (objc_id, SEL, A) funcptr;
-		funcptr = cast(typeof(funcptr))&objc_msgSend;
+		auto funcptr = cast(FuncPtr!(objc_id, objc_id, SEL, A))&objc_msgSend;
 		
 		auto ret = funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
 		return new typeof(this)(ret);
@@ -61,8 +65,7 @@ public:
 	T msgSend(T, A...)(objd.types.SEL cmd, A args)
 		if (!(is(T == objd.types.id) || is(T : id)))
 	{
-		extern(System) T function (objc_id, SEL, A) funcptr;
-		funcptr = cast(typeof(funcptr))&objc_msgSend;
+		auto funcptr = cast(FuncPtr!(T, objc_id, SEL, A))&objc_msgSend;
 		
 		static if (is(T == void))
 			funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
@@ -112,10 +115,8 @@ version (darwin) {
 		auto bytes = str.msgSend!(const(char)*)(objd.runtime.sel_registerName("UTF8String"));
 		auto len = strlen(bytes);
 		
-		auto newStr = new char[len + 1];
+		auto newStr = new char[len];
 		strncpy(newStr.ptr, bytes, len);
-		newStr[len] = '\0';
-		
 		return assumeUnique(newStr);
 	}
 }

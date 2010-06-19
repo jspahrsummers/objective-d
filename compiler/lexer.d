@@ -654,8 +654,8 @@ immutable(Lexeme[]) lex (string file) {
 	}
 	
 	/* Parse loop */
+	dchar ch;
 	while (inFD.readln(buffer)) {
-		dchar ch;
 		for (size_t i = 0;i < buffer.length;++i, lastChar = ch) {
 			ch = buffer[i];
 			if (lastChar == '\n') {

@@ -1,16 +1,55 @@
-SOURCES = exceptions.d lexer.d main.d parser.d processor.d
-RUNTIME_SOURCES = objd/nsobject.d objd/objc.d objd/runtime.d objd/types.d
+# D compiler
+export DC=dmd
 
-all: objective-d
+# flags to pass to the D compiler
+# compilation and linking is performed in one step, so linker flags can go here
+export DFLAGS=-debug -g -w -wi -unittest
 
-objective-d: $(SOURCES)
-	dmd -w -unittest -ofobjective-d $(SOURCES)
+# how to pass the name of the desired output file to the D compiler
+# because of a dmd quirk, the argument is passed *with no spacing* after this flag
+export DOUTPUT_FLAG=-of
 
-check: objective-d
-	./objective-d -o testing.d test/syntax.d
-	dmd -L-lobjc -L-framework -LFoundation -oftesting testing.d $(RUNTIME_SOURCES)
-	./testing
+# tool to invoke to compile and generate libraries
+export DLT=$(DC)
+
+# flags to pass to the tool specified with DLT
+# compilation and linking is performed in one step, so linker flags can go here
+# an invocation of the tool specified with DLT is expected to produce .di headers
+export DLTFLAGS=$(DFLAGS) -lib -H
+
+# how to pass the name of the desired output file to the tool specified with DLIBTOOL
+# because of a dmd quirk, the argument is passed *with no spacing* after this flag
+export DLTOUTPUT_FLAG=-of
+
+# installation paths
+export PREFIX=/usr/local/
+export INSTALL_BIN=bin
+export INSTALL_LIB=lib
+export INSTALL_INCLUDE=include/d
+
+# compiler flags when using the Objective-C compatibility layer
+# this should include the library in which NSObject is defined
+export D_OBJCFLAGS=-L-lobjc -L-framework -LFoundation
+
+.PHONY: all check clean compiler install lib test
+
+all: compiler lib
+check: test
 
 clean:
-	rm -rf objective-d testing testing.d
-	rm -rf *.o
+	cd compiler && $(MAKE) clean
+	cd lib && $(MAKE) clean
+	cd test && $(MAKE) clean
+
+compiler:
+	cd compiler && $(MAKE)
+
+install:
+	cd compiler && $(MAKE) install
+	cd lib && $(MAKE) install
+
+lib:
+	cd lib && $(MAKE)
+
+test: compiler lib
+	cd test && $(MAKE)
