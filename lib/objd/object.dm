@@ -1,7 +1,7 @@
 import objd.runtime;
 import std.stdio;
 
-@class ODObject {
+@class Object {
 	
 }
 
@@ -43,18 +43,18 @@ import std.stdio;
 
 @end
 
-@class MyClass : ODObject {}
+@class MyClass : Object {}
 @end
 
 void main () {
 	assert(MyClass.msgSend!Class(sel_registerName("class")) is MyClass);
-	assert(MyClass.msgSend!bool(sel_registerName("isSubclassOfClass:"), ODObject));
+	assert(MyClass.msgSend!bool(sel_registerName("isSubclassOfClass:"), Object));
 	
 	id obj = MyClass.msgSend!id(sel_registerName("new"));
 	assert(obj !is null);
-	assert(obj.msgSend!bool(sel_registerName("isKindOfClass:"), ODObject));
+	assert(obj.msgSend!bool(sel_registerName("isKindOfClass:"), Object));
 	assert(obj.msgSend!bool(sel_registerName("isKindOfClass:"), MyClass));
-	assert(!obj.msgSend!bool(sel_registerName("isMemberOfClass:"), ODObject));
+	assert(!obj.msgSend!bool(sel_registerName("isMemberOfClass:"), Object));
 	assert(obj.msgSend!bool(sel_registerName("isMemberOfClass:"), MyClass));
 	
 	// this is what really happens behind the scenes to determine return type
@@ -62,7 +62,7 @@ void main () {
 	
 	assert([MyClass class] is MyClass);
 	// parsing needs improvement... message sends with identifiers don't work so hot
-	//assert([MyClass isSubclassOfClass:ODObject]);
+	//assert([MyClass isSubclassOfClass:Object]);
 	
 	id obj2 = [MyClass new];
 	assert(obj2 !is null);
