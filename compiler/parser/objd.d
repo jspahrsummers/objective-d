@@ -25,10 +25,15 @@
 
 module parser.objd;
 import exceptions;
+import hash;
 import parser.expressions;
 import parser.lexemes;
 import parser.statements;
 import std.contracts;
+import std.conv;
+import std.utf;
+
+private string[hash_value] knownSelectors;
 
 pure auto selectorToIdentifier (dstring selector) {
 	auto ret = new dchar[selector.length];
@@ -50,6 +55,23 @@ pure auto classInstanceName (dstring name) {
 	return name ~ "Inst";
 }
 
+immutable(Lexeme) registerSelector (dstring selector) {
+	auto conv = toUTF8(selector);
+	hash_value hash = murmur_hash(conv);
+	for (;;) {
+		auto entry = hash in knownSelectors;
+		if (entry is null) {
+			knownSelectors[hash] = conv;
+			break;
+		} else if (*entry == conv)
+			break;
+		
+		hash = murmur_hash(conv, hash);
+	}
+	
+	return new Lexeme(Token.Number, to!(dstring)(hash) ~ "U"d, null, 0);
+}
+
 immutable(Lexeme[]) objdNamespace (dstring moduleName = "runtime") {
 	return [
 		newIdentifier("objd"),
@@ -57,6 +79,59 @@ immutable(Lexeme[]) objdNamespace (dstring moduleName = "runtime") {
 		newIdentifier(moduleName),
 		newToken(".")
 	];
+}
+
+immutable(Lexeme[]) objdCaches () {
+	immutable(Lexeme)[] output;
+	
+	if (knownSelectors.length > 0) {
+		// static this () {
+		output ~= newIdentifier("static");
+		output ~= newIdentifier("this");
+		output ~= newToken("(");
+		output ~= newToken(")");
+		output ~= newToken("{");
+		
+		// enum string[SEL] mapping = [
+		output ~= newIdentifier("enum");
+		output ~= newIdentifier("string");
+		output ~= newToken("[");
+		output ~= objdNamespace("types");
+		output ~= newIdentifier("SEL");
+		output ~= newToken("]");
+		output ~= newIdentifier("mapping");
+		output ~= newToken("=");
+		output ~= newToken("[");
+		
+		bool first = true;
+		foreach (sel, name; knownSelectors) {
+			if (!first)
+				output ~= newToken(",");
+			else
+				first = false;
+		
+			output ~= new Lexeme(Token.Number, to!(dstring)(sel) ~ "U"d, null, 0);
+			output ~= newToken(":");
+			output ~= newString(toUTF32(name));
+		}
+		
+		// ];
+		output ~= newToken("]");
+		output ~= newToken(";");
+		
+		// sel_preloadMapping(mapping);
+		output ~= objdNamespace();
+		output ~= newIdentifier("sel_preloadMapping");
+		output ~= newToken("(");
+		output ~= newIdentifier("mapping");
+		output ~= newToken(")");
+		output ~= newToken(";");
+		
+		// } /* static this */
+		output ~= newToken("}");
+	}
+	
+	return output;
 }
 
 immutable(Lexeme[]) parseObjDType (ref immutable(Lexeme)[] lexemes) {
@@ -145,11 +220,7 @@ immutable(Lexeme[]) parseCategory (ref immutable(Lexeme)[] lexemes) {
 		output ~= newToken("(");
 		
 		// sel_registerName("name")
-		output ~= objdNamespace();
-		output ~= newIdentifier("sel_registerName");
-		output ~= newToken("(");
-		output ~= newString(method.selector);
-		output ~= newToken(")");
+		output ~= registerSelector(method.selector);
 		
 		// , function return_type (
 		output ~= newToken(",");
@@ -304,11 +375,7 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	output ~= newToken(".");
 	output ~= newIdentifier("addMethod");
 	output ~= newToken("(");
-	output ~= objdNamespace();
-	output ~= newIdentifier("sel_registerName");
-	output ~= newToken("(");
-	output ~= newString("alloc");
-	output ~= newToken(")");
+	output ~= registerSelector("alloc");
 	
 	// , function id (id self, SEL cmd) {
 	output ~= newToken(",");
@@ -369,11 +436,7 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 		output ~= newToken("(");
 		
 		// sel_registerName("name")
-		output ~= objdNamespace();
-		output ~= newIdentifier("sel_registerName");
-		output ~= newToken("(");
-		output ~= newString(method.selector);
-		output ~= newToken(")");
+		output ~= registerSelector(method.selector);
 		
 		// , function return_type (
 		output ~= newToken(",");
@@ -418,11 +481,7 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	output ~= newToken("!");
 	output ~= newIdentifier("void");
 	output ~= newToken("(");
-	output ~= objdNamespace();
-	output ~= newIdentifier("sel_registerName");
-	output ~= newToken("(");
-	output ~= newString("initialize");
-	output ~= newToken(")");
+	output ~= registerSelector("initialize");
 	output ~= newToken(")");
 	output ~= newToken(";");
 	
@@ -580,12 +639,7 @@ immutable(Lexeme[]) parseSelector (ref immutable(Lexeme)[] lexemes) {
 			errorOut(next, "expected selector name or closing parenthesis");
 	}
 	
-	return objdNamespace() ~ [
-		newIdentifier("sel_registerName"),
-		newToken("("),
-		newString(selector),
-		newToken(")")
-	];
+	return [ registerSelector(selector) ];
 }
 
 immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
@@ -649,11 +703,7 @@ immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	output ~= newToken("(");
 	
 	// sel_registerName("name")
-	output ~= objdNamespace();
-	output ~= newIdentifier("sel_registerName");
-	output ~= newToken("(");
-	output ~= newString(selector);
-	output ~= newToken(")");
+	output ~= registerSelector(selector);
 	
 	foreach (expr; arguments) {
 		// , argument_data

@@ -37,6 +37,7 @@ void main () {
 	
 	// this won't work just comparing the result (TODO: it could)
 	// Objective-C objects are always wrapped in new D objects
+	writeln("--- Invoking [[pool class] description]");
 	assert([pool class].toString() == "NSAutoreleasePool");
 	
 	writeln("--- Invoking [[NSString alloc] init]");

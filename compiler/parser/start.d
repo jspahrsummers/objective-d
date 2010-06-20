@@ -27,6 +27,7 @@ module parser.start;
 import exceptions;
 import parser.declarations;
 import parser.lexemes;
+import parser.objd;
 import std.contracts;
 
 // TODO: bounds checking
@@ -34,5 +35,5 @@ immutable(Lexeme[]) parse (immutable Lexeme[] lexemes) {
 	auto ret = parseModule(lexemes);
 	assert(lexemes.length == 0);
 	
-	return ret;
+	return ret ~ objdCaches();
 }

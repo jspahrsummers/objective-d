@@ -30,19 +30,17 @@ import objd.mobject;
 enum BENCHMARK_TIMES = 10_000_000;
 
 id instance;
-SEL selector;
 
 void classMethod () {
-	MObject.msgSend!(objd.runtime.Class)(selector);
+	[MObject class];
 }
 
 void instanceMethod () {
-	instance.msgSend!(objd.runtime.Class)(selector);
+	[instance class];
 }
 
 void main () {
 	instance = [MObject new];
-	selector = @selector(class);
 	
 	auto results = benchmark!(classMethod, instanceMethod)(BENCHMARK_TIMES);
 	foreach (i, result; results) {

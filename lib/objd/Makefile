@@ -3,7 +3,7 @@ OBJD_SOURCES = mobject.dm
 
 # runtime sources
 # TODO: objc.d causes problems; libobjd needs to not depend on libobjc
-SOURCES = hash.d objc.d runtime.d types.d $(OBJD_SOURCES:.dm=.d)
+SOURCES = hash.d hashset.d objc.d runtime.d types.d $(OBJD_SOURCES:.dm=.d)
 
 # generated runtime "header" files
 HEADERS = $(SOURCES:.d=.di)
@@ -13,6 +13,9 @@ PRODUCT = libobjd
 
 # D package name for this library's modules
 PACKAGE_NAME = objd
+
+# additional flags to the D compiler
+DLTFLAGS+=-debug
 
 # the path to the Objective-D compiler
 # this binary must exist before compiling the library

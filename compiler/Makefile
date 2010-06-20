@@ -1,5 +1,5 @@
 # compiler sources
-SOURCES = exceptions.d lexer.d main.d parser/declarations.d parser/expressions.d parser/lexemes.d parser/objd.d parser/start.d parser/statements.d processor.d
+SOURCES = exceptions.d hash.d lexer.d main.d parser/declarations.d parser/expressions.d parser/lexemes.d parser/objd.d parser/start.d parser/statements.d processor.d
 
 # binary name
 PRODUCT = objective-d

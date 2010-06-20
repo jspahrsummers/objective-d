@@ -48,7 +48,7 @@ public:
 		
 		Method method = null;
 		debug {
-			writefln("invoking method %s with return type %s", cmd, typeid(T));
+			//writefln("invoking method %s with return type %s", cmd, typeid(T));
 		}
 		
 		immutable cache = cmd & (METHOD_CACHE_SIZE - 1);

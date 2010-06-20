@@ -26,6 +26,7 @@
 module objd.objc;
 static import objd.runtime;
 static import objd.types;
+import objd.hash;
 import std.c.string;
 import std.contracts;
 import std.stdio;
@@ -74,6 +75,10 @@ alias id Class;
 class id : objd.types.id {
 public:
 	this (string className) {
+		debug {
+			this.className = className;
+		}
+	
 		this.ptr = objc_getClass(toStringz(className));
 		this.isClass = true;
 	}
@@ -124,6 +129,10 @@ public:
 package:
 	objc_id ptr;
 	immutable bool isClass;
+	
+	debug {
+		string className;
+	}
 	
 	this (objc_id ptr) {
 		this.ptr = ptr;

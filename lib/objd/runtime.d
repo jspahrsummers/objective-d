@@ -25,7 +25,7 @@
 
 module objd.runtime;
 public import objd.types;
-import objd.hash;
+import objd.hashset;
 import std.stdio;
 import std.traits;
 
@@ -35,30 +35,37 @@ enum RUNTIME_PATCH_VERSION = 0;
 enum RUNTIME_VERSION = RUNTIME_MAJOR_VERSION.stringof ~ "." ~ RUNTIME_MINOR_VERSION.stringof ~ "." ~ RUNTIME_PATCH_VERSION.stringof;
 
 /* Selectors */
-private string[SEL] mappedSelectors;
+package HashSet!(string) mappedSelectors;
+
+static this () {
+	mappedSelectors = new typeof(mappedSelectors)();
+}
 
 string sel_getName (SEL aSelector) {
-	auto str = aSelector in mappedSelectors;
-	if (str is null)
-		return null;
-	else
-		return *str;
+	return mappedSelectors.get(aSelector);
+}
+
+void sel_preloadMapping (string[SEL] map) {
+	foreach (key, value; map) {
+		assert(value !is null && value.length > 0);
+		
+		mappedSelectors.put(value, key);
+	}
 }
 
 SEL sel_registerName (string str) {
+	assert(str !is null && str.length > 0);
+	
 	auto hash = murmur_hash(str);
-	for (;;) {
-		auto mapped = hash in mappedSelectors;
-		if (mapped is null) {
-			mappedSelectors[hash] = str;
-			break;
-		} else if (*mapped == str)
-			break;
-		
-		hash = murmur_hash(str, hash);
+	bool hashExists = false;
+	foreach (key, value; mappedSelectors) {
+		if (value == str)
+			return key;
+		else if (key == hash)
+			hashExists = true;
 	}
 	
-	return hash;
+	return mappedSelectors.put(str, hash);
 }
 
 /* Messaging */
