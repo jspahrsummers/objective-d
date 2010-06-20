@@ -24,6 +24,7 @@
  */
 
 module objd.mobject;
+import core.thread;
 import objd.runtime;
 import std.c.stdlib;
 import std.stdio;
@@ -61,8 +62,10 @@ public:
 }
 
 + (void)doesNotRecognizeSelector:(SEL)aSelector {
-	throw new DoesNotRecognizeSelectorException(format("%s does not recognize selector \"%s\"", self.isa, sel_getName(aSelector)));
+	throw new DoesNotRecognizeSelectorException(format("%s does not recognize selector %s", [self description], sel_getName(aSelector)));
 }
+
++ (void)initialize {}
 
 + (bool)instancesRespondToSelector:(SEL)aSelector {
 	foreach (const Class cls; self) {
@@ -182,6 +185,7 @@ public:
 
 unittest {
 	assert([MyClass class] is MyClass);
+	assert([MyClass respondsToSelector:@selector(class)]);
 	assert([MyClass isSubclassOfClass:MObject]);
 	
 	id obj = [MyClass new];

@@ -268,7 +268,7 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 		output ~= newToken("(");
 		
 		if (method.classMethod)
-			// ClassName
+			// MetaClassName
 			output ~= metaClass;
 		else
 			// ClassNameInst
@@ -296,6 +296,21 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 		output ~= newToken(")");
 		output ~= newToken(";");
 	}
+	
+	// ClassName.msgSend!(void)(sel_registerName("initialize"));
+	output ~= classNameL;
+	output ~= newToken(".");
+	output ~= newIdentifier("msgSend");
+	output ~= newToken("!");
+	output ~= newIdentifier("void");
+	output ~= newToken("(");
+	output ~= objdNamespace();
+	output ~= newIdentifier("sel_registerName");
+	output ~= newToken("(");
+	output ~= newString("initialize");
+	output ~= newToken(")");
+	output ~= newToken(")");
+	output ~= newToken(";");
 	
 	// } /* static this () */
 	output ~= newToken("}");
