@@ -29,10 +29,10 @@ import std.string;
 
 struct HashSetEntry(K) {
 public:
-	immutable K key;
+	const K key;
 	immutable hash_value hash;
 	
-	this (immutable K key, immutable hash_value hash) {
+	this (const K key, immutable hash_value hash) {
 		this.key = key;
 		this.hash = hash;
 	}
@@ -46,7 +46,7 @@ public:
 		entries = new typeof(entries[0])[1];
 	}
 	
-	immutable(K) get (hash_value hash) const {
+	const(K) get (hash_value hash) const {
 		auto startingSlot = hash & mask;
 		auto slot = startingSlot;
 		for (;;) {
@@ -62,11 +62,13 @@ public:
 		return null;
 	}
 	
-	hash_value put (immutable(K) key) {
-		return put(key, murmur_hash(key));
+	static if (is(K : void[])) {
+		hash_value put (const(K) key) {
+			return put(key, murmur_hash(key));
+		}
 	}
 	
-	hash_value put (immutable(K) key, hash_value hash)
+	hash_value put (const(K) key, hash_value hash)
 	in {
 		assert(key !is null);
 	} body {
@@ -92,7 +94,23 @@ public:
 		return hash;
 	}
 	
-	int opApply (int delegate (ref hash_value hash, ref immutable(K) key) dg) {
+	void remove (hash_value hash) {
+		auto startingSlot = hash & mask;
+		auto slot = startingSlot;
+		for (;;) {
+			if (entries[slot].hash == hash) {
+				entries[slot] = HashSetEntry!(K)(null, hash);
+				return;
+			}
+			
+			// TODO: make quadratic
+			slot = (slot + 1) & mask;
+			if (slot == startingSlot)
+				break;
+		}
+	}
+	
+	int opApply (int delegate (ref hash_value hash, ref const(K) key) dg) {
 		int result = 0;
 		
 		foreach (ref entry; entries) {

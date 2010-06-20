@@ -101,6 +101,15 @@ public:
 	return self.msgSend!(id)(aSelector, obj, obj2);
 }
 
++ (bool)respondsToSelector:(SEL)aSelector {
+	foreach (const Class cls; self) {
+		if (cls.hasMethod(aSelector))
+			return true;
+	}
+	
+	return false;
+}
+
 + (Class)superclass {
 	return self.superclass;
 }

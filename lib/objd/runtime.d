@@ -25,9 +25,11 @@
 
 module objd.runtime;
 public import objd.types;
+import core.memory;
 import objd.hashset;
 import std.contracts;
 import std.stdio;
+import std.string;
 import std.traits;
 
 enum RUNTIME_MAJOR_VERSION = 0;
@@ -36,7 +38,7 @@ enum RUNTIME_PATCH_VERSION = 0;
 enum RUNTIME_VERSION = RUNTIME_MAJOR_VERSION.stringof ~ "." ~ RUNTIME_MINOR_VERSION.stringof ~ "." ~ RUNTIME_PATCH_VERSION.stringof;
 
 /* Selectors */
-private HashSet!(string) mappedSelectors;
+private HashSet!(immutable string) mappedSelectors;
 
 static this () {
 	mappedSelectors = new typeof(mappedSelectors)();
@@ -63,6 +65,10 @@ SEL sel_registerName (string str)
 in {
 	assert(str !is null && str.length > 0);
 } body {
+	debug {
+		writefln("registering selector %s", str);
+	}
+
 	auto hash = murmur_hash(str);
 	
 	debug {
@@ -80,20 +86,20 @@ in {
 /* Messaging */
 class Method {
 public:
-	const SEL selector;
-	TypeInfo returnType;
-	const(TypeInfo)[] argumentTypes;
-	IMP implementation;
+	immutable SEL selector;
+	immutable TypeInfo returnType;
+	immutable TypeInfo[] argumentTypes;
+	immutable IMP implementation;
 	
 	static Method define(T, A...)(SEL selector, T function (id, SEL, A) impl) {
 		TypeInfo[] argTypes = new TypeInfo[A.length];
 		foreach (i, type; A)
-			argTypes[i] = typeid(type);
+			argTypes[i] = typeid(OriginalType!(type));
 		
-		return new Method(selector, cast(IMP)(impl), typeid(Unqual!(T)), argTypes);
+		return new Method(selector, cast(immutable IMP)(impl), cast(immutable)(typeid(Unqual!(OriginalType!T))), assumeUnique(argTypes));
 	}
 	
-	this (SEL selector, IMP implementation, TypeInfo returnType, const TypeInfo[] argumentTypes...) {
+	this (immutable SEL selector, immutable IMP implementation, immutable TypeInfo returnType, immutable TypeInfo[] argumentTypes...) {
 		this.selector = selector;
 		this.implementation = implementation;
 		this.returnType = returnType;
@@ -102,6 +108,32 @@ public:
 	
 	bool opEquals (const Method m) const {
 		return this.selector == m.selector && this.returnType == m.returnType && this.argumentTypes == m.argumentTypes && this.implementation == m.implementation;
+	}
+	
+	override string toString () const {
+		return format("<Method: @selector(%s) = %s>", sel_getName(selector), selector);
+	}
+	
+	T invoke (T, A...) (id self, SEL cmd, A args) {
+		// the safety checks below should always remain in release mode
+		// dynamic programming languages become dangerous without typechecking
+		
+		enforce(TypeInfoConvertibleToType!T(returnType), format("requested return type %s does not match defined return type %s for method %s", typeid(T), returnType, selector));
+		enforce(A.length == argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", selector, A.length, argumentTypes.length));
+		
+		foreach (i, type; A) {
+			debug {
+				//writefln("checking type %s against argument %s", type.stringof, i);
+			}
+			
+			enforce(TypeConvertibleToTypeInfo!type(argumentTypes[i]), format("argument %s of type %s does not match defined parameter type %s for method %s", i + 1, typeid(type), argumentTypes[i], sel_getName(selector)));
+		}
+		
+		auto impl = cast(T function (id, SEL, A))(implementation);
+		static if (is(T == void))
+			impl(self, cmd, args);
+		else
+			return impl(self, cmd, args);
 	}
 }
 
@@ -123,6 +155,7 @@ public:
 		
 		this.superclass = superclass;
 		this.name = name;
+		this.methods = new typeof(methods);
 	}
 	
 	/* Reflection */
@@ -131,10 +164,10 @@ public:
 			writefln("adding selector %s to %s", name, this.name);
 		}
 		
-		if (name in methods)
+		if (methods.get(name) !is null)
 			return false;
 		else {
-			methods[name] = Method.define(name, impl);
+			methods.put(Method.define(name, impl), name);
 			return true;
 		}
 	}
@@ -144,12 +177,11 @@ public:
 	}
 	
 	Method replaceMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
-		Method* ret = name in methods;
-		methods[name] = Method.define(name, impl);
-		if (ret)
-			return *ret;
-		else
-			return null;
+		methods.remove(name);
+		
+		auto method = Method.define(name, impl);
+		methods.put(method, name);
+		return method;
 	}
 	
 	/* Iteration over a class hierarchy */
@@ -181,26 +213,23 @@ public:
 		return result;
 	}
 	
-	// helps with debugging
 	override string toString () const {
 		return name;
 	}
 
 package:
-	Method[SEL] methods;
+	HashSet!(Method) methods;
 	Method[METHOD_CACHE_SIZE] cachedMethods;
 	
 	immutable(Protocol)[] protocols;
 	
 	bool hasMethod (SEL name) const {
-		return !!(name in methods);
+		return methods.get(name) !is null;
 	}
 }
 
 class Instance : id {
-	~this () {
-		this.msgSend!(void)(sel_registerName("finalize"));
-	}
+// TODO: implement "finalize"
 }
 
 immutable class Protocol {

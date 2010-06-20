@@ -9,7 +9,7 @@ OBJDCFLAGS=
 DFLAGS+=-I../lib -L../lib/objd/libobjd.a
 
 # Objective-D test source files
-TEST_OBJD_SOURCES=benchmark.dm category.dm syntax.dm objc.dm
+TEST_OBJD_SOURCES=benchmark.dm category.dm safety.dm syntax.dm objc.dm
 
 # the above source files after being passed through the Objective-D compiler
 # note that changing this variable will *not* change the build process
