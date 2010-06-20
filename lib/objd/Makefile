@@ -15,7 +15,7 @@ PRODUCT = libobjd
 PACKAGE_NAME = objd
 
 # additional flags to the D compiler
-DLTFLAGS+=-debug
+DLTFLAGS+=
 
 # the path to the Objective-D compiler
 # this binary must exist before compiling the library

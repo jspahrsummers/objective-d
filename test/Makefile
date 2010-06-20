@@ -6,7 +6,7 @@ OBJDC=../compiler/objective-d
 OBJDCFLAGS=
 
 # additional flags to add to the D compiler
-DFLAGS+=-I../lib -L../lib/objd/libobjd.a -debug
+DFLAGS+=-I../lib -L../lib/objd/libobjd.a
 
 # Objective-D test source files
 TEST_OBJD_SOURCES=benchmark.dm category.dm syntax.dm objc.dm
@@ -38,4 +38,10 @@ clean:
 % :: %.dm
 	$(OBJDC) -o $@.d $<
 	$(DC) $(DFLAGS) $(D_OBJCFLAGS) $(DOUTPUT_FLAG)$@ $@.d
+	@echo
+	@echo "*************"
+	@echo
 	./$@
+	@echo
+	@echo "*************"
+	@echo
