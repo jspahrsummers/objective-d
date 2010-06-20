@@ -561,7 +561,7 @@ static this () {
 }
 
 public Token tokenForString (dstring str) {
-	// associative array lookup seems to be broken?
+	// associative array lookup seems to be broken
 	//auto tok = str in tokenLookupTable;
 	//if (tok == null)
 	//	return Token.Unknown;

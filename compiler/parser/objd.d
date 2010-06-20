@@ -34,7 +34,7 @@ import std.contracts;
 import std.conv;
 import std.utf;
 
-private string[hash_value] knownSelectors;
+private dstring[hash_value] knownSelectors;
 
 pure auto selectorToIdentifier (dstring selector) {
 	auto ret = new dchar[selector.length];
@@ -62,9 +62,9 @@ immutable(Lexeme) registerSelector (dstring selector) {
 	for (;;) {
 		auto entry = hash in knownSelectors;
 		if (entry is null) {
-			knownSelectors[hash] = conv;
+			knownSelectors[hash] = selector;
 			break;
-		} else if (*entry == conv)
+		} else if (*entry == selector)
 			break;
 		
 		hash = murmur_hash(conv, hash);
@@ -113,7 +113,7 @@ immutable(Lexeme[]) objdCaches () {
 		
 			output ~= new Lexeme(Token.Number, to!(dstring)(sel) ~ "U"d, null, 0);
 			output ~= newToken(":");
-			output ~= newString(toUTF32(name));
+			output ~= newString(name);
 		}
 		
 		// ];

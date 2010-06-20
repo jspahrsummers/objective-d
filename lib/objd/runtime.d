@@ -26,6 +26,7 @@
 module objd.runtime;
 public import objd.types;
 import objd.hashset;
+import std.contracts;
 import std.stdio;
 import std.traits;
 
@@ -49,20 +50,28 @@ void sel_preloadMapping (string[SEL] map) {
 	foreach (key, value; map) {
 		assert(value !is null && value.length > 0);
 		
+		debug {
+			auto existing = mappedSelectors.get(key);
+			enforce(existing is null || existing == value, "selector in preloaded map has already been mapped to a different string");
+		}
+		
 		mappedSelectors.put(value, key);
 	}
 }
 
-SEL sel_registerName (string str) {
+SEL sel_registerName (string str)
+in {
 	assert(str !is null && str.length > 0);
-	
+} body {
 	auto hash = murmur_hash(str);
-	bool hashExists = false;
-	foreach (key, value; mappedSelectors) {
-		if (value == str)
-			return key;
-		else if (key == hash)
-			hashExists = true;
+	
+	debug {
+		foreach (key, value; mappedSelectors) {
+			if (value == str) {
+				enforce(key == hash, "mapped selector already exists, but hash is incorrect");
+				return key;
+			}
+		}
 	}
 	
 	return mappedSelectors.put(str, hash);
@@ -119,7 +128,7 @@ public:
 	/* Reflection */
 	bool addMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
 		debug {
-			writefln("adding method %s to %s", name, this.name);
+			writefln("adding selector %s to %s", name, this.name);
 		}
 		
 		if (name in methods)
