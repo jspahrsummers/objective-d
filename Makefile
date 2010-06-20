@@ -28,8 +28,8 @@ export INSTALL_LIB=lib
 export INSTALL_INCLUDE=include/d
 
 # compiler flags when using the Objective-C compatibility layer
-# this should include the library in which NSObject is defined
-export D_OBJCFLAGS=-L-lobjc -L-framework -LFoundation
+# this should include any available Foundation and AppKit frameworks
+export D_OBJCFLAGS=-L-lobjc -L-framework -LFoundation -L-framework -LAppKit
 
 .PHONY: all check clean compiler install lib test
 
