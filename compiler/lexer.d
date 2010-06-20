@@ -148,13 +148,14 @@ enum Token {
 	+/
 	
 	/* Objective-D keywords (prefixed with an @) */
+	ObjD_category,
 	ObjD_class,
-	ObjD_selector,
-	ObjD_objc,
 	ObjD_end,
-	ObjD_protocol,
+	ObjD_objc,
 	ObjD_optional,
+	ObjD_protocol,
 	ObjD_required,
+	ObjD_selector,
 	
 	/* Literals */
 	String,
@@ -546,13 +547,14 @@ static this () {
 	
 	// all of these should be considered prefixed with @
 	objectiveDKeywordTable = [
+		"category" : Token.ObjD_category,
 		"class"    : Token.ObjD_class,
-		"selector" : Token.ObjD_selector,
-		"objc"     : Token.ObjD_objc,
 		"end"      : Token.ObjD_end,
-		"protocol" : Token.ObjD_protocol,
+		"objc"     : Token.ObjD_objc,
 		"optional" : Token.ObjD_optional,
-		"required" : Token.ObjD_required
+		"protocol" : Token.ObjD_protocol,
+		"required" : Token.ObjD_required,
+		"selector" : Token.ObjD_selector
 	];
 	
 	objectiveDKeywordTable.rehash;

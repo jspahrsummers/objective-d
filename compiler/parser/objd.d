@@ -94,13 +94,127 @@ immutable(Parameter) parseParameter (ref immutable(Lexeme)[] lexemes) {
 	return Parameter(assumeUnique(type), identifier.content);
 }
 
+immutable(Lexeme[]) parseCategory (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+
+	auto classNameL = lexemes[0];
+	lexemes = lexemes[1 .. $];
+	if (classNameL.token != Token.Identifier)
+		errorOut(classNameL, "expected class name");
+	
+	dstring categoryName = null;
+	if (lexemes[0].token == Token.LParen) {
+		if (lexemes[1].token != Token.Identifier)
+			errorOut(lexemes[1], "expected category name");
+		
+		if (lexemes[2].token != Token.RParen)
+			errorOut(lexemes[2], "expected )");
+		
+		categoryName = lexemes[1].content;
+		lexemes = lexemes[3 .. $];
+	}
+	
+	auto className = classNameL.content;
+	auto metaClass = newIdentifier(metaClassName(className));
+	auto classInstance = newIdentifier(classInstanceName(className));
+	
+	// includes @end
+	auto methods = parseMethodDefinitions(lexemes);
+	
+	// static this () {
+	output ~= newIdentifier("static");
+	output ~= newIdentifier("this");
+	output ~= newToken("(");
+	output ~= newToken(")");
+	output ~= newToken("{");
+	
+	foreach (method; methods) {
+		// this is inside a module constructor, so we can add methods
+		// ClassName.
+		output ~= classNameL;
+		output ~= newToken(".");
+		
+		if (method.classMethod) {
+			// isa.
+			output ~= newIdentifier("isa");
+			output ~= newToken(".");
+		}
+		
+		// addMethod(
+		output ~= newIdentifier("addMethod");
+		output ~= newToken("(");
+		
+		// sel_registerName("name")
+		output ~= objdNamespace();
+		output ~= newIdentifier("sel_registerName");
+		output ~= newToken("(");
+		output ~= newString(method.selector);
+		output ~= newToken(")");
+		
+		// , function return_type (
+		output ~= newToken(",");
+		output ~= newIdentifier("function");
+		output ~= method.returnType;
+		output ~= newToken("(");
+		
+		if (method.classMethod)
+			// MetaClassName
+			output ~= metaClass;
+		else
+			// ClassNameInst
+			output ~= classInstance;
+			
+		// self, SEL cmd
+		output ~= newIdentifier("self");
+		output ~= newToken(",");
+		output ~= newIdentifier("SEL");
+		output ~= newIdentifier("cmd");
+		
+		foreach (ref param; method.parameters) {
+			// , parameter_type parameter_name
+			output ~= newToken(",");
+			output ~= param.type;
+			output ~= newIdentifier(param.name);
+		}
+		
+		// ) /* function */
+		output ~= newToken(")");
+		
+		output ~= method.implementationBody;
+		
+		// ) /* addMethod */ ;
+		output ~= newToken(")");
+		output ~= newToken(";");
+	}
+	
+	// } /* static this () */
+	output ~= newToken("}");
+	
+	foreach (method; methods) {
+		// mixin _objDAliasTypeToSelectorReturnType!(method_return_type, "selector:name:", "_objd_sel_methodNameWith__rettype");
+		output ~= newIdentifier("mixin");
+		output ~= newIdentifier("_objDAliasTypeToSelectorReturnType");
+		output ~= newToken("!");
+		output ~= newToken("(");
+		output ~= method.returnType;
+		output ~= newToken(",");
+		output ~= newString(method.selector);
+		output ~= newToken(",");
+		output ~= newString(selectorToIdentifier(method.selector) ~ "_rettype");
+		output ~= newToken(")");
+		output ~= newToken(";");
+	}
+	
+	return assumeUnique(output);
+}
+
 immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	immutable(Lexeme)[] output;
 
 	auto classNameL = lexemes[0];
 	lexemes = lexemes[1 .. $];
 	if (classNameL.token != Token.Identifier)
-		errorOut(classNameL, "expected identifier");
+		errorOut(classNameL, "expected class name");
 	
 	auto className = classNameL.content;
 	auto metaClass = newIdentifier(metaClassName(className));

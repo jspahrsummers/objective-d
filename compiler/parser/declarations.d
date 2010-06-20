@@ -86,6 +86,11 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 		output ~= parseClass(lexemes);
 		break;
 	
+	case Token.ObjD_category:
+		lexemes = lexemes[1 .. $];
+		output ~= parseCategory(lexemes);
+		break;
+	
 	case Token.ObjD_objc:
 		lexemes = lexemes[1 .. $];
 		output ~= parseObjectiveCClass(lexemes);

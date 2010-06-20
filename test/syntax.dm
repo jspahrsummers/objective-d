@@ -1,6 +1,6 @@
 /*
  * syntax.dm
- * Objective-C syntax test
+ * Objective-D syntax test
  *
  * Copyright (c) 2010 Justin Spahr-Summers <Justin.SpahrSummers@gmail.com>
  * 
