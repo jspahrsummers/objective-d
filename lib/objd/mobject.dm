@@ -86,6 +86,18 @@ public:
 	return [[self alloc] init];
 }
 
++ (id)performSelector:(SEL)aSelector {
+	return self.msgSend!(id)(aSelector);
+}
+
++ (id)performSelector:(SEL)aSelector withObject:(id)obj {
+	return self.msgSend!(id)(aSelector, obj);
+}
+
++ (id)performSelector:(SEL)aSelector withObject:(id)obj withObject:(id)obj2 {
+	return self.msgSend!(id)(aSelector, obj, obj2);
+}
+
 + (Class)superclass {
 	return self.superclass;
 }
@@ -136,6 +148,14 @@ public:
 
 - (id)performSelector:(SEL)aSelector {
 	return self.msgSend!(id)(aSelector);
+}
+
+- (id)performSelector:(SEL)aSelector withObject:(id)obj {
+	return self.msgSend!(id)(aSelector, obj);
+}
+
+- (id)performSelector:(SEL)aSelector withObject:(id)obj withObject:(id)obj2 {
+	return self.msgSend!(id)(aSelector, obj, obj2);
 }
 
 - (bool)respondsToSelector:(SEL)aSelector {
