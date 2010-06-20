@@ -26,6 +26,7 @@
 module parser.objd;
 import exceptions;
 import hash;
+import parser.declarations;
 import parser.expressions;
 import parser.lexemes;
 import parser.statements;
@@ -135,27 +136,17 @@ immutable(Lexeme[]) objdCaches () {
 }
 
 immutable(Lexeme[]) parseObjDType (ref immutable(Lexeme)[] lexemes) {
-	immutable(Lexeme)[] type;
-	
 	if (lexemes[0].token != Token.LParen)
 		errorOut(lexemes[0], "expected (");
 	
 	lexemes = lexemes[1 .. $];
-	uint nesting = 1;
-	for (;;) {
-		auto next = lexemes[0];
-		lexemes = lexemes[1 .. $];
-		
-		if (next.token == Token.RParen) {
-			if (--nesting == 0)
-				break;
-		} else if (next.token == Token.LParen)
-			++nesting;
-		
-		type ~= next;
-	}
+	auto type = parseDType(lexemes);
 	
-	return assumeUnique(type);
+	if (lexemes[0].token != Token.RParen)
+		errorOut(lexemes[0], "expected )");
+	
+	lexemes = lexemes[1 .. $];
+	return type;
 }
 
 immutable(Parameter) parseParameter (ref immutable(Lexeme)[] lexemes) {

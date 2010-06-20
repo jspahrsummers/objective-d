@@ -637,8 +637,12 @@ immutable(Lexeme[]) parseDType (ref immutable(Lexeme)[] lexemes) {
 		output ~= parseDeclarator2(lexemes);
 	} else {
 		auto save = lexemes;
-		output ~= parseBasicType2(lexemes);
-		
+		try {
+			output ~= parseBasicType2(lexemes);
+		} catch (ParseException) {
+			return assumeUnique(output);
+		}
+			
 		if (lexemes[0] !is save[0])
 			output ~= parseDeclarator2(lexemes);
 	}
