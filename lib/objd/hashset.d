@@ -25,6 +25,7 @@
 
 module objd.hashset;
 public import objd.hash;
+import std.stdio;
 import std.string;
 
 struct HashSetEntry(K) {
@@ -55,6 +56,11 @@ public:
 			
 			// TODO: make quadratic
 			slot = (slot + 1) & mask;
+			
+			debug {
+				//writefln("get: incrementing slot, current load is %s", cast(double)length / entries.length);
+			}
+			
 			if (slot == startingSlot)
 				break;
 		}
@@ -89,6 +95,10 @@ public:
 			
 			// TODO: make quadratic
 			slot = (slot + 1) & mask;
+			
+			debug {
+				//writefln("put: incrementing slot, current load is %s", cast(double)length / entries.length);
+			}
 		}
 		
 		return hash;
@@ -105,6 +115,11 @@ public:
 			
 			// TODO: make quadratic
 			slot = (slot + 1) & mask;
+			
+			debug {
+				//writefln("remove: incrementing slot, current load is %s", cast(double)length / entries.length);
+			}
+			
 			if (slot == startingSlot)
 				break;
 		}

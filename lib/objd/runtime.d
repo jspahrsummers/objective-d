@@ -113,28 +113,6 @@ public:
 	override string toString () const {
 		return format("<Method: @selector(%s) = %s>", sel_getName(selector), selector);
 	}
-	
-	T invoke (T, A...) (id self, SEL cmd, A args) {
-		// the safety checks below should always remain in release mode
-		// dynamic programming languages become dangerous without typechecking
-		
-		enforce(TypeInfoConvertibleToType!T(returnType), format("requested return type %s does not match defined return type %s for method %s", typeid(T), returnType, selector));
-		enforce(A.length == argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", selector, A.length, argumentTypes.length));
-		
-		foreach (i, type; A) {
-			debug {
-				//writefln("checking type %s against argument %s", type.stringof, i);
-			}
-			
-			enforce(TypeConvertibleToTypeInfo!type(argumentTypes[i]), format("argument %s of type %s does not match defined parameter type %s for method %s", i + 1, typeid(type), argumentTypes[i], sel_getName(selector)));
-		}
-		
-		auto impl = cast(T function (id, SEL, A))(implementation);
-		static if (is(T == void))
-			impl(self, cmd, args);
-		else
-			return impl(self, cmd, args);
-	}
 }
 
 /* Basic OO types */
@@ -168,6 +146,7 @@ public:
 			return false;
 		else {
 			methods.put(Method.define(name, impl), name);
+			invalidateCache();
 			return true;
 		}
 	}
@@ -181,6 +160,7 @@ public:
 		
 		auto method = Method.define(name, impl);
 		methods.put(method, name);
+		invalidateCache();
 		return method;
 	}
 	
@@ -225,6 +205,11 @@ package:
 	
 	bool hasMethod (SEL name) const {
 		return methods.get(name) !is null;
+	}
+	
+	void invalidateCache () {
+		foreach (i; 0 .. METHOD_CACHE_SIZE)
+			cachedMethods[i] = null;
 	}
 }
 

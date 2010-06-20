@@ -58,14 +58,12 @@ public:
 			//writefln("cached methods: %s", cls.cachedMethods);
 		}
 		
-		if (method !is null && method.selector == cmd)
-			return method.invoke!(T, A)(this, cmd, args);
-		else {
+		if (method is null || method.selector != cmd) {
 			do {
-				auto item = cast(Method)cls.methods.get(cmd);
-				if (item !is null) {
-					cls.cachedMethods[cache] = item;
-					return item.invoke!(T, A)(this, cmd, args);
+				method = cast(Method)cls.methods.get(cmd);
+				if (method !is null) {
+					cls.cachedMethods[cache] = method;
+					goto invoke;
 				}
 				
 				cls = cls.superclass;
@@ -87,6 +85,27 @@ public:
 			else
 				return T.init;
 		}
+		
+	invoke:
+		// the safety checks below should always remain in release mode
+		// dynamic programming languages become dangerous without typechecking
+		
+		enforce(TypeInfoConvertibleToType!T(method.returnType), format("requested return type %s does not match defined return type %s for method %s", typeid(T), method.returnType, cmd));
+		enforce(A.length == method.argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", cmd, A.length, method.argumentTypes.length));
+		
+		foreach (i, type; A) {
+			debug {
+				//writefln("checking type %s against argument %s", type.stringof, i);
+			}
+			
+			enforce(TypeConvertibleToTypeInfo!type(method.argumentTypes[i]), format("argument %s of type %s does not match defined parameter type %s for method %s", i + 1, typeid(type), method.argumentTypes[i], sel_getName(cmd)));
+		}
+		
+		auto impl = cast(T function (id, SEL, A))(method.implementation);
+		static if (is(T == void))
+			impl(this, cmd, args);
+		else
+			return impl(this, cmd, args);
 	}
 	
 	override string toString () const {
