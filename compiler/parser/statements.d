@@ -116,6 +116,8 @@ immutable(Lexeme[]) parseOutStatement (ref immutable(Lexeme)[] lexemes) {
 	return assumeUnique(output);
 }
 
+// TODO: convert this to actually parse through statements
+// this will make messaging syntax safer and more robust
 immutable(Lexeme[]) parseBlockStatement (ref immutable(Lexeme)[] lexemes) {
 	immutable(Lexeme)[] output;
 	
@@ -158,4 +160,19 @@ immutable(Lexeme[]) parseBlockStatement (ref immutable(Lexeme)[] lexemes) {
 	lexemes = lexemes[1 .. $];
 	
 	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseStatement (ref immutable(Lexeme)[] lexemes) {
+	if (lexemes[0].token == Token.LBrace)
+		return parseBlockStatement(lexemes);
+	else if (lexemes[0].token == Token.Semicolon) {
+		auto output = [ lexemes[0] ];
+		lexemes = lexemes[1 .. $];
+		return assumeUnique(output);
+	} else
+		return parseNonEmptyStatement(lexemes);
+}
+
+immutable(Lexeme[]) parseNonEmptyStatement (ref immutable(Lexeme)[] lexemes) {
+	assert(false);
 }

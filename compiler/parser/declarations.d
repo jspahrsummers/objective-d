@@ -104,7 +104,6 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 		// EnumDeclaration
 		// InterfaceDeclaration
 		// AggregateDeclaration
-		// Declaration
 		// Constructor
 		// Destructor
 		// Invariant
@@ -138,6 +137,12 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 			
 			break;
 		
+		case "const":
+		case "shared":
+		case "immutable":
+			if (lexemes[1].token == Token.LParen)
+				goto default;
+		
 		case "deprecated":
 		case "private":
 		case "package":
@@ -147,12 +152,9 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 		case "final":
 		case "override":
 		case "abstract":
-		case "const":
 		case "auto":
 		case "scope":
 		case "__gshared":
-		case "shared":
-		case "immutable":
 		case "inout":
 		case "@disable":
 			output ~= lexemes[0];
@@ -343,15 +345,20 @@ immutable(Lexeme[]) parseDeclaration (ref immutable(Lexeme)[] lexemes) {
 			errorOut(lexemes[0], "expected declaration");
 		
 		switch (lexemes[0].content) {
+		case "const":
+		case "immutable":
+		case "shared":
+			if (lexemes[1].token == Token.LParen) {
+				match = false;
+				break;
+			}
+		
 		case "abstract":
 		case "auto":
-		case "const":
 		case "deprecated":
 		case "extern":
 		case "final":
-		case "immutable":
 		case "inout":
-		case "shared":
 		case "nothrow":
 		case "override":
 		case "pure":
@@ -651,15 +658,30 @@ immutable(Lexeme[]) parseParameterList (ref immutable(Lexeme)[] lexemes) {
 immutable(Lexeme[]) parseParameter (ref immutable(Lexeme)[] lexemes) {
 	immutable(Lexeme)[] output;
 	
-	// TODO:
-	// InOut
+	if (lexemes[0].token == Token.Identifier) {
+		switch (lexemes[0].content) {
+		case "in":
+		case "out":
+		case "ref":
+		case "lazy":
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			break;
+		
+		default:
+			;
+		}
+	}
 	
 	output ~= parseBasicType(lexemes);
 	if (lexemes[0].token != Token.Comma && lexemes[0].token != Token.RParen)
 		output ~= parseDeclarator(lexemes);
 	
-	// TODO:
-	// = DefaultInitializerExpression
+	if (lexemes[0].token == Token.Assign) {
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		output ~= parseAssignExpression(lexemes);
+	}
 	
 	return assumeUnique(output);
 }
