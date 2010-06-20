@@ -24,6 +24,7 @@
  */
 
 module objd.types;
+import objd.hash;
 import objd.runtime;
 import std.c.stdlib;
 import std.contracts;
@@ -31,7 +32,7 @@ import std.stdio;
 import std.string;
 
 /* Selectors */
-alias string SEL;
+alias hash_value SEL;
 
 /* Messaging */
 alias int function(id, SEL, ...) IMP;
@@ -50,32 +51,40 @@ public:
 			writefln("invoking method %s with return type %s", cmd, typeid(T));
 		}
 		
-		do {
-			auto item = cmd in cls.methods;
-			if (item) {
-				method = *item;
-				break;
+		immutable cache = cmd & (METHOD_CACHE_SIZE - 1);
+		if (cls.cachedSelectors[cache] == cmd)
+			method = cls.cachedMethods[cache];
+		else {
+			do {
+				auto item = cmd in cls.methods;
+				if (item) {
+					method = *item;
+					break;
+				}
+				
+				cls = cls.superclass;
+			} while (cls !is null);
+			
+			if (!method) {
+				debug {
+					writefln("couldn't find method %s", cmd);
+				}
+				
+				auto doesNotRecognize = sel_registerName("doesNotRecognizeSelector:");
+				if (cmd == doesNotRecognize) {
+					abort();
+				} else {
+					this.msgSend!(void)(doesNotRecognize, cmd);
+				}
+				
+				static if (is(T == void))
+					return;
+				else
+					return T.init;
 			}
 			
-			cls = cls.superclass;
-		} while (cls !is null);
-		
-		if (!method) {
-			debug {
-				writefln("couldn't find method %s", cmd);
-			}
-			
-			auto doesNotRecognize = sel_registerName("doesNotRecognizeSelector:");
-			if (cmd == doesNotRecognize) {
-				abort();
-			} else {
-				this.msgSend!(void)(doesNotRecognize, cmd);
-			}
-			
-			static if (is(T == void))
-				return;
-			else
-				return T.init;
+			cls.cachedSelectors[cache] = cmd;
+			cls.cachedMethods  [cache] = method;
 		}
 		
 		// TODO: this needs to be figured out and re-enabled for type safety

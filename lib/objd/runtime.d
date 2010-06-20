@@ -25,6 +25,7 @@
 
 module objd.runtime;
 public import objd.types;
+import objd.hashset;
 
 import std.stdio;
 import std.traits;
@@ -35,12 +36,22 @@ enum RUNTIME_PATCH_VERSION = 0;
 enum RUNTIME_VERSION = RUNTIME_MAJOR_VERSION.stringof ~ "." ~ RUNTIME_MINOR_VERSION.stringof ~ "." ~ RUNTIME_PATCH_VERSION.stringof;
 
 /* Selectors */
+private HashSet!(string) selectorTable;
+
 string sel_getName (SEL aSelector) {
-	return aSelector;
+	foreach (key, hash; selectorTable) {
+		if (hash == aSelector)
+			return key;
+	}
+	
+	return null;
 }
 
 SEL sel_registerName (string str) {
-	return str;
+	auto hash = murmur_hash(str);
+	selectorTable.insert(str, hash);
+	
+	return hash;
 }
 
 /* Messaging */
@@ -72,6 +83,8 @@ public:
 }
 
 /* Basic OO types */
+package enum METHOD_CACHE_SIZE = 8;
+
 class Class : id {
 public:
 	Class superclass;
@@ -152,16 +165,19 @@ public:
 
 package:
 	Method[SEL] methods;
+	Method[METHOD_CACHE_SIZE] cachedMethods;
+	SEL[METHOD_CACHE_SIZE] cachedSelectors;
+	
 	immutable(Protocol)[] protocols;
 	
-    bool hasMethod (SEL name) const {
-        return !!(name in methods);
-    }
+	bool hasMethod (SEL name) const {
+		return !!(name in methods);
+	}
 }
 
 class Instance : id {
 	~this () {
-		this.msgSend!(void)("finalize");
+		this.msgSend!(void)(sel_registerName("finalize"));
 	}
 }
 

@@ -360,7 +360,13 @@ immutable(Lexeme[]) parseDeclarators (ref immutable(Lexeme)[] lexemes) {
 	output ~= parseDeclarator(lexemes);
 	
 	if (lexemes[0].token == Token.Assign) {
-		assert(false);
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		
+		// TODO:
+		// ArrayInitializer
+		// StructInitializer
+		output ~= parseAssignExpression(lexemes);
 	} else if (lexemes[0].token == Token.Comma) {
 		output ~= lexemes[0];
 		lexemes = lexemes[1 .. $];
