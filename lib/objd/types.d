@@ -52,9 +52,9 @@ public:
 		}
 		
 		immutable cache = cmd & (METHOD_CACHE_SIZE - 1);
-		if (cls.cachedSelectors[cache] == cmd)
-			method = cls.cachedMethods[cache];
-		else {
+		method = cls.cachedMethods[cache];
+		
+		if (method is null || method.selector != cmd) {
 			do {
 				auto item = cmd in cls.methods;
 				if (item) {
@@ -83,8 +83,7 @@ public:
 					return T.init;
 			}
 			
-			cls.cachedSelectors[cache] = cmd;
-			cls.cachedMethods  [cache] = method;
+			cls.cachedMethods[cache] = method;
 		}
 		
 		// TODO: this needs to be figured out and re-enabled for type safety

@@ -25,8 +25,7 @@
 
 module objd.runtime;
 public import objd.types;
-import objd.hashset;
-
+import objd.hash;
 import std.stdio;
 import std.traits;
 
@@ -36,20 +35,28 @@ enum RUNTIME_PATCH_VERSION = 0;
 enum RUNTIME_VERSION = RUNTIME_MAJOR_VERSION.stringof ~ "." ~ RUNTIME_MINOR_VERSION.stringof ~ "." ~ RUNTIME_PATCH_VERSION.stringof;
 
 /* Selectors */
-private HashSet!(string) selectorTable;
+private string[SEL] mappedSelectors;
 
 string sel_getName (SEL aSelector) {
-	foreach (key, hash; selectorTable) {
-		if (hash == aSelector)
-			return key;
-	}
-	
-	return null;
+	auto str = aSelector in mappedSelectors;
+	if (str is null)
+		return null;
+	else
+		return *str;
 }
 
 SEL sel_registerName (string str) {
 	auto hash = murmur_hash(str);
-	selectorTable.insert(str, hash);
+	for (;;) {
+		auto mapped = hash in mappedSelectors;
+		if (mapped is null) {
+			mappedSelectors[hash] = str;
+			break;
+		} else if (*mapped == str)
+			break;
+		
+		hash = murmur_hash(str, hash);
+	}
 	
 	return hash;
 }
@@ -57,7 +64,7 @@ SEL sel_registerName (string str) {
 /* Messaging */
 class Method {
 public:
-	immutable SEL selector;
+	const SEL selector;
 	TypeInfo returnType;
 	const(TypeInfo)[] argumentTypes;
 	IMP implementation;
@@ -166,7 +173,6 @@ public:
 package:
 	Method[SEL] methods;
 	Method[METHOD_CACHE_SIZE] cachedMethods;
-	SEL[METHOD_CACHE_SIZE] cachedSelectors;
 	
 	immutable(Protocol)[] protocols;
 	
