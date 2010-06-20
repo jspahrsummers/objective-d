@@ -25,17 +25,10 @@
 
 module parser.expressions;
 import exceptions;
+import parser.declarations;
 import parser.lexemes;
 import parser.objd;
 import std.contracts;
-
-immutable(Lexeme[]) parseDType (ref immutable(Lexeme)[] lexemes) {
-	immutable(Lexeme)[] output;
-	
-	assert(false);
-	
-	return assumeUnique(output);
-}
 
 immutable(Lexeme[]) parseArgumentList (ref immutable(Lexeme)[] lexemes) {
 	immutable(Lexeme)[] output;

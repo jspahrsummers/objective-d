@@ -99,7 +99,6 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 	case Token.Identifier:
 		switch (lexemes[0].content) {
 		// TODO:
-		// LinkageAttribute
 		// AlignAtribute
 		// Pragma
 		// EnumDeclaration
@@ -116,7 +115,35 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 		// TemplateMixin
 		// MixinDeclaration
 		
+		case "extern":
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			
+			if (lexemes[0].token == Token.LParen) {
+				if (lexemes[1].token == Token.RParen)
+					errorOut(lexemes[1], "expected linkage type");
+			
+				size_t pos = 1;
+				while (lexemes[++pos].token != Token.RParen) {}
+				
+				output ~= lexemes[0 .. pos];
+				lexemes = lexemes[pos + 1 .. $];
+			}
+			
+			if (lexemes[0].token == Token.Colon) {
+				output ~= lexemes[0];
+				lexemes = lexemes[1 .. $];
+			} else
+				output ~= parseDeclarationBlock(lexemes);
+			
+			break;
+		
 		case "deprecated":
+		case "private":
+		case "package":
+		case "protected":
+		case "public":
+		case "export":
 		case "final":
 		case "override":
 		case "abstract":
@@ -130,17 +157,65 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 		case "@disable":
 			output ~= lexemes[0];
 			lexemes = lexemes[1 .. $];
-			output ~= parseDeclarationBlock(lexemes);
+			
+			if (lexemes[0].token == Token.Colon) {
+				output ~= lexemes[0];
+				lexemes = lexemes[1 .. $];
+			} else
+				output ~= parseDeclarationBlock(lexemes);
+			
 			break;
 		
 		case "static":
-			// TODO:
-			// AttributeSpecifier
-			// ImportDeclaration
-			// StaticConstructor
-			// StaticAssert
-			assert(false);
-			break;
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			
+			if (lexemes[0].content != "import") {
+				switch (lexemes[0].content) {
+				case "this":
+					output ~= lexemes[0];
+					lexemes = lexemes[1 .. $];
+					
+					// TODO: are parentheses required?
+					if (lexemes[0].token == Token.LParen) {
+						if (lexemes[1].token != Token.RParen)
+							errorOut(lexemes[1], "expected )");
+						
+						output ~= lexemes[0 .. 1];
+						lexemes = lexemes[2 .. $];
+					}
+					
+					output ~= parseFunctionBody(lexemes);
+					break;
+				
+				case "assert":
+					if (lexemes[1].token != Token.LParen)
+						errorOut(lexemes[1], "expected (");
+						
+					output ~= lexemes[0 .. 1];
+					lexemes = lexemes[2 .. $];
+					
+					output ~= parseAssignExpression(lexemes);
+					if (lexemes[0].token == Token.Comma) {
+						output ~= lexemes[0];
+						lexemes = lexemes[1 .. $];
+						
+						output ~= parseAssignExpression(lexemes);
+					}
+				
+					if (lexemes[0].token != Token.RParen)
+						errorOut(lexemes[0], "expected )");
+					
+					output ~= lexemes[0];
+					lexemes = lexemes[1 .. $];
+					break;
+				
+				default:
+					;
+				}
+				
+				break;
+			}
 		
 		case "import":
 			output ~= parseImportList(lexemes);
@@ -452,63 +527,7 @@ immutable(Lexeme[]) parseDeclarators (ref immutable(Lexeme)[] lexemes) {
 immutable(Lexeme[]) parseDeclarator (ref immutable(Lexeme)[] lexemes) {
 	immutable(Lexeme)[] output;
 	
-	switch (lexemes[0].token) {
-	case Token.Star:
-		output ~= lexemes[0];
-		lexemes = lexemes[1 .. $];
-		break;
-		
-	case Token.LBracket:
-		output ~= lexemes[0];
-		lexemes = lexemes[1 .. $];
-		
-		if (lexemes[0].token != Token.RBracket) {
-			auto save = lexemes;
-			try {
-				output ~= parseAssignExpression(lexemes);
-				if (lexemes[0].token == Token.Range) {
-					output ~= lexemes[0];
-					lexemes = lexemes[1 .. $];
-					
-					output ~= parseAssignExpression(lexemes);
-				}
-			} catch (ParseException) {
-				output ~= parseDType(lexemes);
-			}
-		}
-		
-		if (lexemes[0].token != Token.RBracket)
-			errorOut(lexemes[0], "expected ]");
-		
-		output ~= lexemes[0];
-		lexemes = lexemes[1 .. $];
-		break;
-		
-	case Token.Identifier:
-		if (lexemes[0].content == "delegate" || lexemes[0].content == "function") {
-			if (lexemes[1].token != Token.LParen)
-				errorOut(lexemes[1], "expected (");
-			
-			output ~= lexemes[0 .. 1];
-			lexemes = lexemes[2 .. $];
-			
-			if (lexemes[0].token != Token.RParen)
-				output ~= parseParameterList(lexemes);
-			
-			if (lexemes[0].token != Token.RParen)
-				errorOut(lexemes[0], "expected )");
-			
-			do {
-				output ~= lexemes[0];
-				lexemes = lexemes[1 .. $];
-			} while (lexemes[0].content == "nothrow" || lexemes[0].content == "pure");
-		}
-		
-		break;
-	
-	default:
-		errorOut(lexemes[0], "expected declarator");
-	}
+	output ~= parseBasicType2(lexemes);
 	
 	if (lexemes[0].token != Token.Identifier) {
 		output ~= parseDeclarator(lexemes);
@@ -517,6 +536,13 @@ immutable(Lexeme[]) parseDeclarator (ref immutable(Lexeme)[] lexemes) {
 	
 	output ~= lexemes[0];
 	lexemes = lexemes[1 .. $];
+	
+	output ~= parseDeclaratorSuffixes(lexemes);
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseDeclaratorSuffixes (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
 	
 	for (;;) {
 		bool match = true;
@@ -599,6 +625,110 @@ immutable(Lexeme[]) parseParameter (ref immutable(Lexeme)[] lexemes) {
 	
 	// TODO:
 	// = DefaultInitializerExpression
+	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseDType (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	output ~= parseBasicType(lexemes);
+	if (lexemes[0].token == Token.LParen) {
+		output ~= parseDeclarator2(lexemes);
+	} else {
+		auto save = lexemes;
+		output ~= parseBasicType2(lexemes);
+		
+		if (lexemes[0] !is save[0])
+			output ~= parseDeclarator2(lexemes);
+	}
+	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseDeclarator2 (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	if (lexemes[0].token == Token.LParen) {
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		
+		output ~= parseDeclarator2(lexemes);
+		if (lexemes[0].token != Token.RParen)
+			errorOut(lexemes[0], "expected )");
+		
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		
+		output ~= parseDeclaratorSuffixes(lexemes);
+	} else {
+		output ~= parseBasicType2(lexemes);
+		output ~= parseDeclarator2(lexemes);
+	}
+	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseBasicType2 (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	switch (lexemes[0].token) {
+	case Token.Star:
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		break;
+		
+	case Token.LBracket:
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		
+		if (lexemes[0].token != Token.RBracket) {
+			auto save = lexemes;
+			try {
+				output ~= parseAssignExpression(lexemes);
+				if (lexemes[0].token == Token.Range) {
+					output ~= lexemes[0];
+					lexemes = lexemes[1 .. $];
+					
+					output ~= parseAssignExpression(lexemes);
+				}
+			} catch (ParseException) {
+				output ~= parseDType(lexemes);
+			}
+		}
+		
+		if (lexemes[0].token != Token.RBracket)
+			errorOut(lexemes[0], "expected ]");
+		
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		break;
+		
+	case Token.Identifier:
+		if (lexemes[0].content == "delegate" || lexemes[0].content == "function") {
+			if (lexemes[1].token != Token.LParen)
+				errorOut(lexemes[1], "expected (");
+			
+			output ~= lexemes[0 .. 1];
+			lexemes = lexemes[2 .. $];
+			
+			if (lexemes[0].token != Token.RParen)
+				output ~= parseParameterList(lexemes);
+			
+			if (lexemes[0].token != Token.RParen)
+				errorOut(lexemes[0], "expected )");
+			
+			do {
+				output ~= lexemes[0];
+				lexemes = lexemes[1 .. $];
+			} while (lexemes[0].content == "nothrow" || lexemes[0].content == "pure");
+		}
+		
+		break;
+	
+	default:
+		errorOut(lexemes[0], "expected declarator");
+	}
 	
 	return assumeUnique(output);
 }
