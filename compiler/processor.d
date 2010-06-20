@@ -28,7 +28,7 @@ import exceptions;
 import lexer;
 import parser.start;
 
-bool process (string[] inputFiles, string outputFile, string[] includePaths) {
+bool process (string[] inputFiles, string outputFile) {
 	File outFD;
 	try {
 		outFD = File(outputFile, "wt");

@@ -39,13 +39,11 @@ immutable string defaultOutputFilename = "main.d";
 int main (string[] args) {
 	bool printVersion;
 	string outputFile = null;
-	string[] includePaths;
 	string[] inputFiles;
 	
 	getopt(args,
 		std.getopt.config.bundling,
 		"of|o", &outputFile,
-		"I", &includePaths,
 		"version|v", &printVersion
 	);
 	
@@ -79,7 +77,7 @@ int main (string[] args) {
 	} else if (printVersion)
 		writeln();
 	
-	if (process(inputFiles, outputFile, includePaths))
+	if (process(inputFiles, outputFile))
 		return EXIT_SUCCESS;
 	else
 		return EXIT_FAILURE;
