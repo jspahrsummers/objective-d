@@ -3,7 +3,7 @@ export DC=dmd
 
 # flags to pass to the D compiler
 # compilation and linking is performed in one step, so linker flags can go here
-export DFLAGS=-g -w -wi -unittest -debug
+export DFLAGS=-g -w -wi -unittest
 
 # how to pass the name of the desired output file to the D compiler
 # because of a dmd quirk, the argument is passed *with no spacing* after this flag
@@ -31,7 +31,10 @@ export INSTALL_INCLUDE=include/d
 # this should include any available Foundation and AppKit frameworks
 export D_OBJCFLAGS=-L-lobjc -L-framework -LFoundation -L-framework -LAppKit
 
-.PHONY: all check clean compiler install lib test
+# flags to use when benchmarking Objective-D
+BENCHMARK_FLAGS=$(DFLAGS) -O -inline -version=unsafe
+
+.PHONY: all benchmark check clean compiler install lib test
 
 all: | compiler lib
 check: test
@@ -53,3 +56,8 @@ lib: | compiler
 
 test: | compiler lib
 	cd test && $(MAKE)
+
+benchmark: clean
+	cd compiler && DFLAGS="$(BENCHMARK_FLAGS)" $(MAKE)
+	cd lib && DFLAGS="$(BENCHMARK_FLAGS)" $(MAKE)
+	cd test && DFLAGS="$(BENCHMARK_FLAGS)" $(MAKE) benchmark

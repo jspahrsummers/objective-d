@@ -9,16 +9,15 @@ OBJDCFLAGS=
 DFLAGS+=-I../lib -L../lib/objd/libobjd.a
 
 # Objective-D test source files
-TEST_OBJD_SOURCES=benchmark.dm category.dm safety.dm syntax.dm objc.dm
+TEST_OBJD_SOURCES=category.dm safety.dm syntax.dm objc.dm
 
 # the above source files after being passed through the Objective-D compiler
 # note that changing this variable will *not* change the build process
 TEST_D_PROCESSED_SOURCES=$(TEST_OBJD_SOURCES:.dm=.d)
 
 # test binaries
-TEST_PRODUCTS=$(TEST_OBJD_SOURCES:.dm=)
+TEST_PRODUCTS=$(TEST_D_PROCESSED_SOURCES:.d=)
 
-# TESTS are marked as phony to always build
 .PHONY: all check clean
 
 all: check
@@ -26,8 +25,8 @@ check: | $(TEST_PRODUCTS) clean
 
 clean:
 	rm -f *.o
-	rm -f $(TEST_PRODUCTS)
-	rm -f $(TEST_D_PROCESSED_SOURCES)
+	rm -f $(TEST_PRODUCTS) benchmark
+	rm -f $(TEST_D_PROCESSED_SOURCES) benchmark.d
 
 # the Objective-C test is a special case since it has dependencies
 #objc:

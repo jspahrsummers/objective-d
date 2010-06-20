@@ -90,15 +90,18 @@ public:
 		// the safety checks below should always remain in release mode
 		// dynamic programming languages become dangerous without typechecking
 		
-		enforce(TypeInfoConvertibleToType!T(method.returnType), format("requested return type %s does not match defined return type %s for method %s", typeid(T), method.returnType, cmd));
-		enforce(A.length == method.argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", cmd, A.length, method.argumentTypes.length));
-		
-		foreach (i, type; A) {
-			debug {
-				//writefln("checking type %s against argument %s", type.stringof, i);
-			}
+		version (unsafe) {
+		} else {
+			enforce(TypeInfoConvertibleToType!T(method.returnType), format("requested return type %s does not match defined return type %s for method %s", typeid(T), method.returnType, cmd));
+			enforce(A.length == method.argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", cmd, A.length, method.argumentTypes.length));
 			
-			enforce(TypeConvertibleToTypeInfo!type(method.argumentTypes[i]), format("argument %s of type %s does not match defined parameter type %s for method %s", i + 1, typeid(type), method.argumentTypes[i], sel_getName(cmd)));
+			foreach (i, type; A) {
+				debug {
+					//writefln("checking type %s against argument %s", type.stringof, i);
+				}
+				
+				enforce(TypeConvertibleToTypeInfo!type(method.argumentTypes[i]), format("argument %s of type %s does not match defined parameter type %s for method %s", i + 1, typeid(type), method.argumentTypes[i], sel_getName(cmd)));
+			}
 		}
 		
 		auto impl = cast(T function (id, SEL, A))(method.implementation);
