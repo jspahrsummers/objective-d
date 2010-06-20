@@ -35,7 +35,7 @@ enum RUNTIME_PATCH_VERSION = 0;
 enum RUNTIME_VERSION = RUNTIME_MAJOR_VERSION.stringof ~ "." ~ RUNTIME_MINOR_VERSION.stringof ~ "." ~ RUNTIME_PATCH_VERSION.stringof;
 
 /* Selectors */
-package HashSet!(string) mappedSelectors;
+private HashSet!(string) mappedSelectors;
 
 static this () {
 	mappedSelectors = new typeof(mappedSelectors)();
