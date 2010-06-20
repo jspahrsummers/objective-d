@@ -140,8 +140,8 @@ immutable(Lexeme[]) parseCategory (ref immutable(Lexeme)[] lexemes) {
 			output ~= newToken(".");
 		}
 		
-		// addMethod(
-		output ~= newIdentifier("addMethod");
+		// replaceMethod(
+		output ~= newIdentifier("replaceMethod");
 		output ~= newToken("(");
 		
 		// sel_registerName("name")

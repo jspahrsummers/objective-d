@@ -28,6 +28,10 @@ import objd.mobject;
 
 @category MObject
 
+- (string)description {
+	return "foobar";
+}
+
 - (id)somethingAmazing {
 	return self;
 }
@@ -50,6 +54,9 @@ void main () {
 	
 	writeln("--- Invoking category instance method and validating result");
 	assert([obj somethingAmazing] is obj);
+	
+	writeln("--- Invoking category method that overrode instance method and validating result");
+	assert([obj description] == "foobar");
 	
 	writeln("--- Invoking category class method through instance and validating result");
 	assert([[obj class] theMeaningOfLifeTheUniverseAndEverything] == 42);
