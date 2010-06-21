@@ -203,7 +203,7 @@ public:
 		return name;
 	}
 
-package:
+public:
 	HashSet!(Method) methods;
 	Method[METHOD_CACHE_SIZE] cachedMethods;
 	

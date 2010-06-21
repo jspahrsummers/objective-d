@@ -32,6 +32,8 @@ enum BENCHMARK_TIMES = 10_000_000;
 
 id instance;
 
+Class function (Class, SEL) classIMP;
+
 void classMethod () {
 	[MObject class];
 }
@@ -40,11 +42,17 @@ void instanceMethod () {
 	[instance class];
 }
 
+void impCached () {
+	classIMP(MObject, @selector(class));
+}
+
 void main () {
 	instance = [MObject new];
+	classIMP = cast(typeof(classIMP))MObject.isa.methods.get(@selector(class)).implementation;
+	assert(classIMP !is null);
 	
-	auto results = benchmark!(classMethod, instanceMethod)(BENCHMARK_TIMES);
+	auto results = benchmark!(classMethod, instanceMethod, impCached)(BENCHMARK_TIMES);
 	foreach (i, result; results) {
-		writefln("running benchmark %s %s times took %s ms (%.2f ms each)", i, BENCHMARK_TIMES, result, cast(real)result / BENCHMARK_TIMES);
+		writefln("running benchmark %s %s times took %s ms (%.2f ms each)", i + 1, BENCHMARK_TIMES, result, cast(real)result / BENCHMARK_TIMES);
 	}
 }
