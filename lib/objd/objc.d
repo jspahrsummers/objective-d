@@ -83,35 +83,12 @@ public:
 		this.isClass = true;
 	}
 	
-	typeof(this) msgSend(T, A...)(objd.types.SEL cmd, A args)
-		if (is(T == objd.types.id) || is(T : id))
-	{
-		auto funcptr = cast(FuncPtr!(objc_id, objc_id, SEL, A))&objc_msgSend;
-		
-		auto ret = funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
-		return new typeof(this)(ret);
-	}
-	
-	T msgSend(T, A...)(objd.types.SEL cmd, A args)
-		if (!(is(T == objd.types.id) || is(T : id)))
-	{
-		auto funcptr = cast(FuncPtr!(T, objc_id, SEL, A))&objc_msgSend;
-		
-		static if (is(T == void))
-			funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
-		else {
-			auto ret = funcptr(ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
-			return ret;
-		}
-	}
-	
 	override bool opEquals (Object other) const {
 		auto obj = cast(id)other;
 		if (obj is null)
 			return false;
 		
-		auto deconsted = cast(Unqual!(typeof(this)))this;
-		return cast(bool)deconsted.msgSend!(BOOL)(objd.runtime.sel_registerName("isEqual:"), obj.ptr);
+		return cast(bool)msgSend!(BOOL)(cast(Unqual!(typeof(this)))this, objd.runtime.sel_registerName("isEqual:"), obj.ptr);
 	}
 	
 	// though the "description" method is rather portable, NSString probably isn't
@@ -119,10 +96,8 @@ public:
 		override string toString () const {
 			if (ptr is null)
 				return "(null)";
-			else {
-				auto deconsted = cast(Unqual!(typeof(this)))this;
-				return stringFromNSString(deconsted.msgSend!(id)(objd.runtime.sel_registerName("description")));
-			}
+			else
+				return stringFromNSString(msgSend!(id)(cast(Unqual!(typeof(this)))this, objd.runtime.sel_registerName("description")));
 		}
 	}
 	
@@ -140,13 +115,31 @@ package:
 	}
 }
 
+T msgSend(T, A...)(id self, objd.types.SEL cmd, A args) {
+	static if (is(T == objd.types.id) || is(T : id)) {
+		auto funcptr = cast(FuncPtr!(objc_id, objc_id, SEL, A))&objc_msgSend;
+		
+		auto ret = funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
+		return new id(ret);
+	} else {
+		auto funcptr = cast(FuncPtr!(T, objc_id, SEL, A))&objc_msgSend;
+			
+		static if (is(T == void))
+			funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
+		else {
+			auto ret = funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
+			return ret;
+		}
+	}
+}
+
 // NSString probably isn't very portable
 version (darwin) {
 	string stringFromNSString (id str) {
 		if (str is null || str.ptr is null)
 			return "(null)";
 	
-		auto bytes = str.msgSend!(const(char)*)(objd.runtime.sel_registerName("UTF8String"));
+		auto bytes = msgSend!(const(char)*)(str, objd.runtime.sel_registerName("UTF8String"));
 		auto len = strlen(bytes);
 		
 		auto newStr = new char[len];

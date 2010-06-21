@@ -90,15 +90,15 @@ public:
 }
 
 + (id)performSelector:(SEL)aSelector {
-	return self.msgSend!(id)(aSelector);
+	return objd_msgSend!(id)(self, aSelector);
 }
 
 + (id)performSelector:(SEL)aSelector withObject:(id)obj {
-	return self.msgSend!(id)(aSelector, obj);
+	return objd_msgSend!(id)(self, aSelector, obj);
 }
 
 + (id)performSelector:(SEL)aSelector withObject:(id)obj withObject:(id)obj2 {
-	return self.msgSend!(id)(aSelector, obj, obj2);
+	return objd_msgSend!(id)(self, aSelector, obj, obj2);
 }
 
 + (bool)respondsToSelector:(SEL)aSelector {
@@ -159,15 +159,15 @@ public:
 }
 
 - (id)performSelector:(SEL)aSelector {
-	return self.msgSend!(id)(aSelector);
+	return objd_msgSend!(id)(self, aSelector);
 }
 
 - (id)performSelector:(SEL)aSelector withObject:(id)obj {
-	return self.msgSend!(id)(aSelector, obj);
+	return objd_msgSend!(id)(self, aSelector, obj);
 }
 
 - (id)performSelector:(SEL)aSelector withObject:(id)obj withObject:(id)obj2 {
-	return self.msgSend!(id)(aSelector, obj, obj2);
+	return objd_msgSend!(id)(self, aSelector, obj, obj2);
 }
 
 - (bool)respondsToSelector:(SEL)aSelector {

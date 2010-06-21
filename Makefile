@@ -32,6 +32,7 @@ export INSTALL_INCLUDE=include/d
 export D_OBJCFLAGS=-L-lobjc -L-framework -LFoundation -L-framework -LAppKit
 
 # flags to use when benchmarking Objective-D
+# to accurately compare timings vs. Objective-C, this turns off type safety
 BENCHMARK_FLAGS=$(DFLAGS) -O -inline -version=unsafe
 
 .PHONY: all benchmark check clean compiler install lib test

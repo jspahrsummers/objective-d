@@ -32,27 +32,27 @@ void main () {
 	writeln("Testing Objective-D type safety...");
 	
 	writeln("--- Checking implicit conversion of object return types");
-	assert(MObject.msgSend!(Class)(@selector(class)) is MObject);
-	assert(MObject.msgSend!(id)(@selector(class)) is MObject);
+	assert(objd_msgSend!(Class)(MObject, @selector(class)) is MObject);
+	assert(objd_msgSend!(id   )(MObject, @selector(class)) is MObject);
 	
 	writeln("--- Checking that incorrect return types throw exceptions");
 	
 	try {
-		MObject.msgSend!(int)(@selector(class));
+		objd_msgSend!(int)(MObject, @selector(class));
 		throw new Error("exception not thrown");
 	} catch (Exception ex) {
 		writefln("  - %s", ex.msg);
 	}
 	
 	try {
-		MObject.msgSend!(double)(@selector(class));
+		objd_msgSend!(double)(MObject, @selector(class));
 		throw new Error("exception not thrown");
 	} catch (Exception ex) {
 		writefln("  - %s", ex.msg);
 	}
 	
 	try {
-		MObject.msgSend!(objd.objc.id)(@selector(class));
+		objd_msgSend!(objd.objc.id)(MObject, @selector(class));
 		throw new Error("exception not thrown");
 	} catch (Exception ex) {
 		writefln("  - %s", ex.msg);
@@ -61,14 +61,14 @@ void main () {
 	writeln("--- Checking that extra parameters throw exceptions");
 	
 	try {
-		MObject.msgSend!(Class)(@selector(class), "extra parameter");
+		objd_msgSend!(Class)(MObject, @selector(class), "extra parameter");
 		throw new Error("exception not thrown");
 	} catch (Exception ex) {
 		writefln("  - %s", ex.msg);
 	}
 	
 	try {
-		MObject.msgSend!(id)(@selector(class), "extra parameter", 5, 10.3);
+		objd_msgSend!(id)(MObject, @selector(class), "extra parameter", 5, 10.3);
 		throw new Error("exception not thrown");
 	} catch (Exception ex) {
 		writefln("  - %s", ex.msg);
@@ -77,14 +77,14 @@ void main () {
 	writeln("--- Checking that incorrect parameter types throw exceptions");
 	
 	try {
-		MObject.msgSend!(bool)(@selector(respondsToSelector:), 10.5);
+		objd_msgSend!(bool)(MObject, @selector(respondsToSelector:), 10.5);
 		throw new Error("exception not thrown");
 	} catch (Exception ex) {
 		writefln("  - %s", ex.msg);
 	}
 	
 	try {
-		MObject.msgSend!(bool)(@selector(respondsToSelector:), "foobar");
+		objd_msgSend!(bool)(MObject, @selector(respondsToSelector:), "foobar");
 		throw new Error("exception not thrown");
 	} catch (Exception ex) {
 		writefln("  - %s", ex.msg);

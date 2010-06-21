@@ -26,6 +26,7 @@
 import std.date;
 import std.stdio;
 import objd.mobject;
+import objd.runtime;
 
 enum BENCHMARK_TIMES = 10_000_000;
 
@@ -39,10 +40,18 @@ void instanceMethod () {
 	[instance class];
 }
 
+void classMethod2 () {
+	objd_msgSend!(Class)(MObject, @selector(class));
+}
+
+void instanceMethod2 () {
+	objd_msgSend!(Class)(instance, @selector(class));
+}
+
 void main () {
 	instance = [MObject new];
 	
-	auto results = benchmark!(classMethod, instanceMethod)(BENCHMARK_TIMES);
+	auto results = benchmark!(classMethod, instanceMethod, classMethod2, instanceMethod2)(BENCHMARK_TIMES);
 	foreach (i, result; results) {
 		writefln("running benchmark %s %s times took %s ms (%.2f ms each)", i, BENCHMARK_TIMES, result, cast(real)result / BENCHMARK_TIMES);
 	}

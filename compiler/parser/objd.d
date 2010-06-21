@@ -465,13 +465,14 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 		output ~= newToken(";");
 	}
 	
-	// ClassName.msgSend!(void)(sel_registerName("initialize"));
-	output ~= classNameL;
-	output ~= newToken(".");
-	output ~= newIdentifier("msgSend");
+	// objd_msgSend!(void)(ClassName, sel_registerName("initialize"));
+	output ~= objdNamespace();
+	output ~= newIdentifier("objd_msgSend");
 	output ~= newToken("!");
 	output ~= newIdentifier("void");
 	output ~= newToken("(");
+	output ~= classNameL;
+	output ~= newToken(",");
 	output ~= registerSelector("initialize");
 	output ~= newToken(")");
 	output ~= newToken(";");
@@ -644,7 +645,7 @@ immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	lexemes = lexemes[1 .. $];
 	
 	// receiver of the message
-	output ~= parseAssignExpression(lexemes);
+	auto receiver = parseAssignExpression(lexemes);
 	
 	if (lexemes[0].token == Token.Comma) {
 		// this seems to be an array literal
@@ -676,9 +677,9 @@ immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 			errorOut(next, "expected message name");
 	}
 	
-	// .msgSend!(
-	output ~= newToken(".");
-	output ~= newIdentifier("msgSend");
+	// objd_msgSend!(
+	output ~= objdNamespace();
+	output ~= newIdentifier("objd_msgSend");
 	output ~= newToken("!");
 	output ~= newToken("(");
 	
@@ -689,9 +690,11 @@ immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	output ~= newString(selectorToIdentifier(selector) ~ "_rettype");
 	output ~= newToken(")");
 	
-	// )(
+	// )(receiver,
 	output ~= newToken(")");
 	output ~= newToken("(");
+	output ~= receiver;
+	output ~= newToken(",");
 	
 	// sel_registerName("name")
 	output ~= registerSelector(selector);

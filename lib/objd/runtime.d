@@ -27,6 +27,7 @@ module objd.runtime;
 public import objd.types;
 import core.memory;
 import objd.hashset;
+import std.c.stdlib;
 import std.contracts;
 import std.stdio;
 import std.string;
@@ -156,6 +157,10 @@ public:
 	}
 	
 	Method replaceMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
+		debug {
+			writefln("replacing selector %s in %s", name, this.name);
+		}
+		
 		methods.remove(name);
 		
 		auto method = Method.define(name, impl);
@@ -215,6 +220,82 @@ package:
 
 class Instance : id {
 // TODO: implement "finalize"
+}
+
+T objd_msgSend(T, A...)(id self, SEL cmd, A args)
+in {
+	assert(self !is null);
+} body {
+	version (unsafe) {
+	} else {
+		if (cast(objd.objc.id)self)
+			return objd.objc.msgSend!(T, A)(cast(objd.objc.id)self, cmd, args);
+	}
+	
+	Class cls = self.isa;
+	assert(cls !is null);
+	
+	debug {
+		//writefln("invoking method %s with return type %s", cmd, typeid(T));
+	}
+	
+	immutable cache = cmd & (METHOD_CACHE_SIZE - 1);
+	auto method = cls.cachedMethods[cache];
+	debug {
+		//writefln("cached methods: %s", cls.cachedMethods);
+	}
+	
+	if (method is null || method.selector != cmd) {
+		do {
+			method = cast(Method)cls.methods.get(cmd);
+			if (method !is null) {
+				cls.cachedMethods[cache] = method;
+				goto invoke;
+			}
+			
+			cls = cls.superclass;
+		} while (cls !is null);
+		
+		debug {
+			writefln("couldn't find method %s", cmd);
+		}
+		
+		auto doesNotRecognize = sel_registerName("doesNotRecognizeSelector:");
+		if (cmd == doesNotRecognize) {
+			abort();
+		} else {
+			objd_msgSend!(void)(self, doesNotRecognize, cmd);
+		}
+		
+		static if (is(T == void))
+			return;
+		else
+			return T.init;
+	}
+	
+invoke:
+	// the safety checks below should always remain in release mode
+	// dynamic programming languages become dangerous without typechecking
+	
+	version (unsafe) {
+	} else {
+		enforce(TypeInfoConvertibleToType!T(method.returnType), format("requested return type %s does not match defined return type %s for method %s", typeid(T), method.returnType, cmd));
+		enforce(A.length == method.argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", cmd, A.length, method.argumentTypes.length));
+		
+		foreach (i, type; A) {
+			debug {
+				//writefln("checking type %s against argument %s", type.stringof, i);
+			}
+			
+			enforce(TypeConvertibleToTypeInfo!type(method.argumentTypes[i]), format("argument %s of type %s does not match defined parameter type %s for method %s", i + 1, typeid(type), method.argumentTypes[i], sel_getName(cmd)));
+		}
+	}
+	
+	auto impl = cast(T function (id, SEL, A))(method.implementation);
+	static if (is(T == void))
+		impl(self, cmd, args);
+	else
+		return impl(self, cmd, args);
 }
 
 immutable class Protocol {
