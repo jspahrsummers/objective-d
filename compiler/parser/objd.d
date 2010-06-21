@@ -282,7 +282,8 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	auto metaClass = newIdentifier(metaClassName(className));
 	auto classInstance = newIdentifier(classInstanceName(className));
 	
-	// MetaClassName ClassName;
+	// __gshared MetaClassName ClassName;
+	output ~= newIdentifier("__gshared");
 	output ~= metaClass;
 	output ~= classNameL;
 	output ~= newToken(";");
@@ -510,7 +511,8 @@ immutable(Lexeme[]) parseObjectiveCClass (ref immutable(Lexeme)[] lexemes) {
 		
 	lexemes = lexemes[2 .. $];
 	
-	// objd.objc.Class ClassName;
+	// __gshared objd.objc.Class ClassName;
+	output ~= newIdentifier("__gshared");
 	output ~= objdNamespace("objc");
 	output ~= newIdentifier("Class");
 	output ~= className;

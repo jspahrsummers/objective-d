@@ -31,7 +31,6 @@ import objd.runtime;
 enum BENCHMARK_TIMES = 10_000_000;
 
 __gshared id instance;
-
 __gshared Class function (Class, SEL) classIMP;
 
 void classMethod () {
