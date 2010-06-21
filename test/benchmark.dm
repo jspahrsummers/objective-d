@@ -41,6 +41,18 @@ void instanceMethod () {
 	[instance class];
 }
 
+@class MyClass : MObject {
+}
+
++ (bool)doSomething:(int)a with:(double)b and:(char)c {
+	return false;
+}
+@end
+
+void methodWithArgs () {
+	[MyClass doSomething:42 with:3.14 and:'!'];
+}
+
 void impCached () {
 	classIMP(MObject, @selector(class));
 }
@@ -50,7 +62,7 @@ void main () {
 	classIMP = cast(typeof(classIMP))MObject.isa.methods.get(@selector(class)).implementation;
 	assert(classIMP !is null);
 	
-	auto results = benchmark!(classMethod, instanceMethod, impCached)(BENCHMARK_TIMES);
+	auto results = benchmark!(classMethod, instanceMethod, methodWithArgs, impCached)(BENCHMARK_TIMES);
 	foreach (i, result; results) {
 		writefln("running benchmark %s %s times took %s ms (%.2f ms each)", i + 1, BENCHMARK_TIMES, result, cast(real)result / BENCHMARK_TIMES);
 	}

@@ -55,17 +55,9 @@ package bool TypeConvertibleToTypeInfo(T)(immutable TypeInfo info) {
 		debug {
 			//writefln("checking typeinfo %s against implicit type %s from type %s", cast(TypeInfo)info, typeid(type), typeid(T));
 		}
-	
-		static if (is(T == const)) {
-			if (info == cast(immutable)typeid(const type))
-				return true;
-		} else if (is(T == immutable)) {
-			if (info == cast(immutable)typeid(const type) || info == cast(immutable)typeid(immutable type))
-				return true;
-		} else {
-			if (info == cast(immutable)typeid(const type) || info == cast(immutable)typeid(          type))
-				return true;
-		}
+		
+		if (info == cast(immutable)typeid(type))
+			return true;
 	}
 	
 	return false;

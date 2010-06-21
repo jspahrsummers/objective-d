@@ -96,7 +96,7 @@ public:
 	static Method define(T, A...)(SEL selector, T function (id, SEL, A) impl) {
 		TypeInfo[] argTypes = new TypeInfo[A.length];
 		foreach (i, type; A)
-			argTypes[i] = typeid(OriginalType!(type));
+			argTypes[i] = typeid(Unqual!(OriginalType!type));
 		
 		return new Method(selector, cast(immutable IMP)(impl), cast(immutable)(typeid(Unqual!(OriginalType!T))), assumeUnique(argTypes));
 	}
@@ -231,7 +231,7 @@ version (unsafe) {
 	enum SAFETY_DEFAULT = true;
 }
 
-objd.objc.ObjCType!T objd_msgSend(T, U : objd.objc.id, bool safe = SAFETY_DEFAULT, A...)(U self, SEL cmd, A args)
+objd.objc.ObjCType!T objd_msgSend(T, U : objd.objc.id, bool safe = false, A...)(U self, SEL cmd, A args)
 in {
 	assert(self !is null);
 } body {
