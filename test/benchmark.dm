@@ -31,7 +31,7 @@ import objd.runtime;
 enum BENCHMARK_TIMES = 10_000_000;
 
 __gshared id instance;
-__gshared Class function (Class, SEL) classIMP;
+__gshared Class function (id, SEL) classIMP;
 
 void classMethod () {
 	[MObject class];
@@ -59,7 +59,11 @@ void impCached () {
 
 void main () {
 	instance = [MObject new];
-	classIMP = cast(typeof(classIMP))MObject.isa.methods.get(@selector(class)).implementation;
+	
+	auto method = MObject.isa.methods.get(@selector(class));
+	assert(method !is null);
+	
+	classIMP = cast(typeof(classIMP))(method.implementation);
 	assert(classIMP !is null);
 	
 	auto results = benchmark!(classMethod, instanceMethod, methodWithArgs, impCached)(BENCHMARK_TIMES);

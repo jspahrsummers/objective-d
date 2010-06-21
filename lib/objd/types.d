@@ -34,7 +34,39 @@ import std.traits;
 import std.typetuple;
 
 /* Selectors */
-alias hash_value SEL;
+struct SEL {
+public:
+	this (string name) {
+		this.hash = murmur_hash(name);
+		this.name = name;
+	}
+	
+	this (string name, hash_value hash) {
+		this.hash = hash;
+		this.name = name;
+	}
+
+	hash_value toHash () const {
+		return hash;
+	}
+	
+	bool opEquals (ref const SEL other) const {
+		// selector hashes should always be unique
+		return hash == other.hash;
+	}
+	
+	string toString () {
+		return name;
+	}
+	
+	string toString () const {
+		return name;
+	}
+
+package:
+	immutable hash_value hash;
+	immutable string name;
+}
 
 /* Messaging */
 alias int function(id, SEL, ...) IMP;

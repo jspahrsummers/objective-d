@@ -33,7 +33,7 @@ export D_OBJCFLAGS=-L-lobjc -L-framework -LFoundation -L-framework -LAppKit
 
 # flags to use when benchmarking Objective-D
 # to accurately compare timings vs. Objective-C, this turns off type safety
-BENCHMARK_FLAGS=$(DFLAGS) -O -inline -release #-version=unsafe
+BENCHMARK_FLAGS=-O -inline -release -version=unsafe
 
 .PHONY: all benchmark check clean compiler install lib test
 
@@ -59,6 +59,6 @@ test: | compiler lib
 	cd test && $(MAKE)
 
 benchmark: clean
-	cd compiler && DFLAGS="$(BENCHMARK_FLAGS)" $(MAKE)
-	cd lib && DFLAGS="$(BENCHMARK_FLAGS)" $(MAKE)
-	cd test && DFLAGS="$(BENCHMARK_FLAGS)" $(MAKE) benchmark
+	cd compiler && DFLAGS="$(DFLAGS) $(BENCHMARK_FLAGS)" $(MAKE)
+	cd lib && DFLAGS="$(DFLAGS) $(BENCHMARK_FLAGS)" DLTFLAGS="$(DLTFLAGS) $(BENCHMARK_FLAGS)" $(MAKE)
+	cd test && DFLAGS="$(DFLAGS) $(BENCHMARK_FLAGS)" $(MAKE) benchmark

@@ -1,5 +1,5 @@
 /*
- * hashset.d
+ * hashtable.d
  * Objective-D runtime
  *
  * Copyright (c) 2010 Justin Spahr-Summers <Justin.SpahrSummers@gmail.com>
@@ -23,13 +23,18 @@
  * SOFTWARE.
  */
 
-module objd.hashset;
+module objd.hashtable;
 public import objd.hash;
 import std.stdio;
 import std.string;
 
-class HashSet(K, bool CACHE = false) {
+class HashTable(K, V, bool CACHE = false) {
 public:
+	static if (is(V == class) || is(V == interface))
+		alias V VT;
+	else
+		alias V* VT;
+
 	this () {
 		buckets = new Entry[1];
 	}
@@ -60,9 +65,9 @@ public:
 		buckets = new Entry[newCapacity];
 		bucketMask = newCapacity - 1;
 		
-		foreach (ref const Entry entry; currentBuckets) {
+		foreach (ref Entry entry; currentBuckets) {
 			if (!entry.empty)
-				add(entry.key, entry.hash);
+				set(entry.key, entry.hash, entry.value);
 		}
 		
 		return newCapacity;
@@ -76,26 +81,34 @@ public:
 		return get(key, precalcHash) !is null;
 	}
 	
-	immutable(K)* get (immutable K key) const {
+	VT get (immutable K key)                                      {
 		return get(key, hashKey(key));
 	}
 	
-	immutable(K)* get (immutable K key, hash_value precalcHash) const {
+	VT get (immutable K key, hash_value precalcHash)              {
 		debug {
 			enforce(precalcHash == hashKey(key), "hash of key does not match precalculated hash");
 		}
 		
-		auto slot = precalcHash & bucketMask;
+		enum startingSlot = precalcHash & bucketMask;
 		static if (CACHE) {
-			if (buckets[slot].empty || buckets[slot].key != key)
+			if (buckets[startingSlot].empty || buckets[startingSlot].key != key) {
 				return null;
-			else
-				return &buckets[slot].key;
+			} else {
+				static if (is(VT : void*))
+					return &buckets[startingSlot].value;
+				else
+					return  buckets[startingSlot].value;
+			}
 		} else {
-			auto startingSlot = slot;
+			auto slot = startingSlot;
 			while (!buckets[slot].empty) {
-				if (buckets[slot].hash == precalcHash && buckets[slot].key == key)
-					return &buckets[slot].key;
+				if (buckets[slot].hash == precalcHash && buckets[slot].key == key) {
+					static if (is(VT : void*))
+						return &buckets[slot].value;
+					else
+						return  buckets[slot].value;
+				}
 				
 				slot = (slot + 1) & bucketMask;
 				if (slot == startingSlot)
@@ -106,11 +119,49 @@ public:
 		}
 	}
 	
-	immutable(K) add (immutable K key) {
-		return add(key, hashKey(key));
+	const(VT) get (immutable K key)                         const {
+		return get(key, hashKey(key));
 	}
 	
-	immutable(K) add (immutable K key, hash_value precalcHash) {
+	const(VT) get (immutable K key, hash_value precalcHash) const {
+		debug {
+			enforce(precalcHash == hashKey(key), "hash of key does not match precalculated hash");
+		}
+		
+		enum startingSlot = precalcHash & bucketMask;
+		static if (CACHE) {
+			if (buckets[startingSlot].empty || buckets[startingSlot].key != key) {
+				return null;
+			} else {
+				static if (is(VT : void*))
+					return &buckets[startingSlot].value;
+				else
+					return  buckets[startingSlot].value;
+			}
+		} else {
+			auto slot = startingSlot;
+			while (!buckets[slot].empty) {
+				if (buckets[slot].hash == precalcHash && buckets[slot].key == key) {
+					static if (is(VT : void*))
+						return &buckets[slot].value;
+					else
+						return  buckets[slot].value;
+				}
+				
+				slot = (slot + 1) & bucketMask;
+				if (slot == startingSlot)
+					break;
+			}
+			
+			return null;
+		}
+	}
+	
+	void set (immutable K key, V value) {
+		set(key, hashKey(key), value);
+	}
+	
+	void set (immutable K key, hash_value precalcHash, V value) {
 		expandIfNeeded();
 	
 		debug {
@@ -122,19 +173,19 @@ public:
 			if (buckets[slot].empty)
 				++count;
 			
-			buckets[slot] = Entry(key, precalcHash);
-			return key;
+			buckets[slot] = Entry(key, precalcHash, value);
 		} else {
 			while (!buckets[slot].empty) {
-				if (buckets[slot].hash == precalcHash && buckets[slot].key == key)
-					return buckets[slot].key;
+				if (buckets[slot].hash == precalcHash && buckets[slot].key == key) {
+					buckets[slot].value = value;
+					return;
+				}
 				
 				slot = (slot + 1) & bucketMask;
 			}
 			
-			buckets[slot] = Entry(key, precalcHash);
+			buckets[slot] = Entry(key, precalcHash, value);
 			++count;
-			return key;
 		}
 	}
 	
@@ -155,7 +206,6 @@ public:
 		}
 		
 		auto slot = precalcHash & bucketMask;
-		
 		static if (CACHE) {
 			if (buckets[slot].empty)
 				return;
@@ -190,11 +240,13 @@ protected:
 	public:
 		immutable K key;
 		immutable hash_value hash;
+		V value;
 		bool empty = true;
 		
-		this (immutable K key, immutable hash_value hash) {
+		this (immutable K key, immutable hash_value hash, V value) {
 			this.key = key;
 			this.hash = hash;
+			this.value = value;
 			this.empty = false;
 		}
 	}
