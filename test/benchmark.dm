@@ -30,9 +30,9 @@ import objd.runtime;
 
 enum BENCHMARK_TIMES = 10_000_000;
 
-id instance;
+__gshared id instance;
 
-Class function (Class, SEL) classIMP;
+__gshared Class function (Class, SEL) classIMP;
 
 void classMethod () {
 	[MObject class];
