@@ -115,7 +115,7 @@ package:
 	}
 }
 
-T msgSend(T, A...)(id self, objd.types.SEL cmd, A args) {
+ObjCType!T msgSend(T, A...)(id self, objd.types.SEL cmd, A args) {
 	static if (is(T == objd.types.id) || is(T : id)) {
 		auto funcptr = cast(FuncPtr!(objc_id, objc_id, SEL, A))&objc_msgSend;
 		
@@ -123,7 +123,7 @@ T msgSend(T, A...)(id self, objd.types.SEL cmd, A args) {
 		return new id(ret);
 	} else {
 		auto funcptr = cast(FuncPtr!(T, objc_id, SEL, A))&objc_msgSend;
-			
+		
 		static if (is(T == void))
 			funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
 		else {
@@ -131,6 +131,13 @@ T msgSend(T, A...)(id self, objd.types.SEL cmd, A args) {
 			return ret;
 		}
 	}
+}
+
+package template ObjCType(T) {
+	static if (is(T == objd.types.id) || is(T : id))
+		alias id ObjCType;
+	else
+		alias T ObjCType;
 }
 
 // NSString probably isn't very portable

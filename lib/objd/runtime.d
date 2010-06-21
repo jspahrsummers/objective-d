@@ -25,6 +25,7 @@
 
 module objd.runtime;
 public import objd.types;
+static import objd.objc;
 import core.memory;
 import objd.hashset;
 import std.c.stdlib;
@@ -224,25 +225,26 @@ class Instance : id {
 // TODO: implement "finalize"
 }
 
-T objd_msgSend(T, U : objd.objc.id, A...)(U self, SEL cmd, A args)
+version (unsafe) {
+	enum SAFETY_DEFAULT = false;
+} else {
+	enum SAFETY_DEFAULT = true;
+}
+
+objd.objc.ObjCType!T objd_msgSend(T, U : objd.objc.id, bool safe = SAFETY_DEFAULT, A...)(U self, SEL cmd, A args)
 in {
 	assert(self !is null);
 } body {
 	return objd.objc.msgSend!(T, A)(self, cmd, args);
 }
 
-T objd_msgSend(T, U, A...)(U self, SEL cmd, A args)
+T objd_msgSend(T, U, bool safe = SAFETY_DEFAULT, A...)(U self, SEL cmd, A args)
 in {
 	assert(self !is null);
 } body {
-	// the more specialized template will catch statically-typed ObjC objects
-	static if (!is(U : objd.objc.id)) {
-		version (unsafe) {
-		} else {
-			auto objc = cast(objd.objc.id)self;
-			if (objc !is null)
-				return objd.objc.msgSend!(T, A)(objc, cmd, args);
-		}
+	// the more specialized template should catch statically-typed ObjC objects
+	debug {
+		enforce(cast(objd.objc.id)self is null, "objd_msgSend() invoked with wrapped Objective-C object");
 	}
 	
 	Class cls = self.isa;
@@ -290,8 +292,7 @@ invoke:
 	// the safety checks below should always remain in release builds
 	// dynamic programming languages become dangerous without typechecking
 	
-	version (unsafe) {
-	} else {
+	static if (safe) {
 		enforce(TypeInfoConvertibleToType!T(method.returnType), format("requested return type %s does not match defined return type %s for method %s", typeid(T), method.returnType, cmd));
 		enforce(A.length == method.argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", cmd, A.length, method.argumentTypes.length));
 		
