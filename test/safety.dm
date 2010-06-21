@@ -26,7 +26,19 @@
 import objd.mobject;
 import objd.runtime;
 static import objd.objc;
+import std.contracts;
 import std.stdio;
+
+@class MyClass : MObject {
+}
+
++ (int)something:(string)str {
+	return 42;
+}
+
++ (void)somethingElse:(const char[])str {}
+
+@end
 
 void main () {
 	writeln("Testing Objective-D type safety...");
@@ -89,6 +101,27 @@ void main () {
 	} catch (Exception ex) {
 		writefln("  - %s", ex.msg);
 	}
+	
+	writeln("--- Checking that immutable works properly");
+	
+	assert(objd_msgSend!(int)(MyClass, @selector(something:), "foobar") == 42);
+	
+	auto str = [ 'f', 'o', 'o' ];
+	assert(objd_msgSend!(int)(MyClass, @selector(something:), assumeUnique(str)) == 42);
+	
+	try {
+		objd_msgSend!(int)(MyClass, @selector(something:), str);
+		throw new Error("exception not thrown");
+	} catch (Exception ex) {
+		writefln("  - %s", ex.msg);
+	}
+	
+	writeln("--- Checking that const works properly");
+	
+	// TODO: none of these tests pass!
+	//objd_msgSend!(void)(MyClass, @selector(somethingElse:), "foobar");
+	//objd_msgSend!(void)(MyClass, @selector(somethingElse:), assumeUnique(str));
+	//objd_msgSend!(void)(MyClass, @selector(somethingElse:), str);
 	
 	writefln("%s passed!", __FILE__);
 }
