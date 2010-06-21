@@ -118,6 +118,7 @@ public:
 
 /* Basic OO types */
 package enum METHOD_CACHE_SIZE = 8;
+package enum METHOD_CACHE_MASK = METHOD_CACHE_SIZE - 1;
 
 class Class : id {
 public:
@@ -214,7 +215,8 @@ package:
 	
 	void invalidateCache () {
 		foreach (i; 0 .. METHOD_CACHE_SIZE)
-			cachedMethods[i] = null;
+			// fill with dummy methods to speed up cache checks
+			cachedMethods[i] = new Method(0, null, null, null);
 	}
 }
 
@@ -250,17 +252,17 @@ in {
 		//writefln("invoking method %s with return type %s", cmd, typeid(T));
 	}
 	
-	immutable cache = cmd & (METHOD_CACHE_SIZE - 1);
-	auto method = cls.cachedMethods[cache];
+	enum slot = cmd & METHOD_CACHE_MASK;
+	auto method = cls.cachedMethods[slot];
 	debug {
 		//writefln("cached methods: %s", cls.cachedMethods);
 	}
 	
-	if (method is null || method.selector != cmd) {
+	if (method.selector != cmd) {
 		do {
 			method = cast(Method)cls.methods.get(cmd);
 			if (method !is null) {
-				cls.cachedMethods[cache] = method;
+				cls.cachedMethods[slot] = method;
 				goto invoke;
 			}
 			
@@ -285,7 +287,7 @@ in {
 	}
 	
 invoke:
-	// the safety checks below should always remain in release mode
+	// the safety checks below should always remain in release builds
 	// dynamic programming languages become dangerous without typechecking
 	
 	version (unsafe) {
