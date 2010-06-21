@@ -222,14 +222,25 @@ class Instance : id {
 // TODO: implement "finalize"
 }
 
-T objd_msgSend(T, A...)(id self, SEL cmd, A args)
+T objd_msgSend(T, U : objd.objc.id, A...)(U self, SEL cmd, A args)
 in {
 	assert(self !is null);
 } body {
-	version (unsafe) {
-	} else {
-		if (cast(objd.objc.id)self)
-			return objd.objc.msgSend!(T, A)(cast(objd.objc.id)self, cmd, args);
+	return objd.objc.msgSend!(T, A)(self, cmd, args);
+}
+
+T objd_msgSend(T, U, A...)(U self, SEL cmd, A args)
+in {
+	assert(self !is null);
+} body {
+	// the more specialized template will catch statically-typed ObjC objects
+	static if (!is(U : objd.objc.id)) {
+		version (unsafe) {
+		} else {
+			auto objc = cast(objd.objc.id)self;
+			if (objc !is null)
+				return objd.objc.msgSend!(T, A)(objc, cmd, args);
+		}
 	}
 	
 	Class cls = self.isa;
