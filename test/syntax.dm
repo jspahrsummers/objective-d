@@ -60,6 +60,9 @@ void main () {
 	id obj = [MyClass new];
 	assert(obj !is null);
 	
+	writeln("--- Invoking [nil new] and validating that response is nil");
+	assert([nil new] is nil);
+	
 	writeln("--- Invoking [obj class] and checking for identity with MyClass");
 	assert([obj class] is MyClass);
 	
