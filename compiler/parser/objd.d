@@ -60,6 +60,10 @@ immutable(Lexeme) registerSelector (dstring selector) {
 	auto conv = toUTF8(selector);
 	hash_value hash = murmur_hash(conv);
 	for (;;) {
+		// selector 0 is reserved
+		if (hash == 0)
+			hash = 1;
+	
 		auto entry = hash in knownSelectors;
 		if (entry is null) {
 			knownSelectors[hash] = selector;
