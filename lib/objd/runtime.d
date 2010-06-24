@@ -27,7 +27,7 @@ module objd.runtime;
 public import objd.types;
 static import objd.objc;
 import core.memory;
-import objd.hashset;
+import objd.hash;
 import std.c.stdlib;
 import std.contracts;
 import std.stdio;
@@ -40,11 +40,7 @@ enum RUNTIME_PATCH_VERSION = 0;
 enum RUNTIME_VERSION = RUNTIME_MAJOR_VERSION.stringof ~ "." ~ RUNTIME_MINOR_VERSION.stringof ~ "." ~ RUNTIME_PATCH_VERSION.stringof;
 
 /* Selectors */
-private __gshared HashSet!(immutable string) mappedSelectors;
-
-static this () {
-	mappedSelectors = new typeof(mappedSelectors)();
-}
+private __gshared SelectorSet!(immutable string) mappedSelectors;
 
 string sel_getName (SEL aSelector) {
 	return mappedSelectors.get(aSelector);
@@ -52,14 +48,17 @@ string sel_getName (SEL aSelector) {
 
 void sel_preloadMapping (string[SEL] map) {
 	foreach (key, value; map) {
-		assert(value !is null && value.length > 0);
+		assert(key != 0, "selector 0 is reserved");
+		assert(value !is null && value.length > 0, "string not provided for mapped selector");
 		
+		bool result = mappedSelectors.add(key, value);
 		debug {
-			auto existing = mappedSelectors.get(key);
-			enforce(existing is null || existing == value, "selector in preloaded map has already been mapped to a different string");
+			assert(result || mappedSelectors.get(key) == value, "selector in preloaded map has already been mapped to a different string");
 		}
 		
-		mappedSelectors.put(value, key);
+		debug {
+			//writefln("mapped %s to %s", value, key);
+		}
 	}
 }
 
@@ -68,21 +67,28 @@ in {
 	assert(str !is null && str.length > 0);
 } body {
 	debug {
-		writefln("registering selector %s", str);
+		//writefln("registering selector %s", str);
 	}
 
 	auto hash = murmur_hash(str);
 	
+	// selector 0 is reserved
+	if (hash == 0)
+		hash = 1;
+	
 	debug {
 		foreach (key, value; mappedSelectors) {
 			if (value == str) {
-				enforce(key == hash, "mapped selector already exists, but hash is incorrect");
+				if (key != hash)
+					writefln("warning: mapped selector for \"%s\" already exists as %s, but hash %s doesn't match", value, key, hash);
+				
 				return key;
 			}
 		}
 	}
 	
-	return mappedSelectors.put(str, hash);
+	mappedSelectors.add(hash, str);
+	return hash;
 }
 
 /* Messaging */
@@ -108,12 +114,12 @@ public:
 		this.argumentTypes = argumentTypes;
 	}
 	
-	bool opEquals (const Method m) const {
+	bool opEquals (ref const Method m) const {
 		return this.selector == m.selector && this.returnType == m.returnType && this.argumentTypes == m.argumentTypes && this.implementation == m.implementation;
 	}
 	
 	override string toString () const {
-		return format("<Method: @selector(%s) = %s>", sel_getName(selector), selector);
+		return format("<Method: @selector(%s) = %s>", (selector != 0 ? sel_getName(selector) : ""), selector);
 	}
 }
 
@@ -136,39 +142,33 @@ public:
 		
 		this.superclass = superclass;
 		this.name = name;
-		this.methods = new typeof(methods);
 	}
 	
 	/* Reflection */
 	bool addMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
+		auto method = Method.define(name, impl);
+		auto result = methods.add(name, method, false);
 		debug {
-			writefln("adding selector %s to %s", name, this.name);
+			//writefln("%s method %s to %s", (result ? "added" : "failed to add"), method, this.name);
 		}
 		
-		if (methods.get(name) !is null)
-			return false;
-		else {
-			methods.put(Method.define(name, impl), name);
+		if (result)
 			invalidateCache();
-			return true;
-		}
+		
+		return result;
 	}
 	
 	void addProtocol (immutable Protocol p) {
 		protocols ~= p;
 	}
 	
-	Method replaceMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
+	void replaceMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
 		debug {
-			writefln("replacing selector %s in %s", name, this.name);
+			//writefln("replacing selector %s in %s", name, this.name);
 		}
 		
-		methods.remove(name);
-		
-		auto method = Method.define(name, impl);
-		methods.put(method, name);
+		methods.add(name, Method.define(name, impl), true);
 		invalidateCache();
-		return method;
 	}
 	
 	/* Iteration over a class hierarchy */
@@ -205,7 +205,7 @@ public:
 	}
 
 public:
-	HashSet!(Method) methods;
+	SelectorSet!(Method) methods;
 	Method[METHOD_CACHE_SIZE] cachedMethods;
 	
 	immutable(Protocol)[] protocols;
@@ -238,14 +238,20 @@ in {
 	return objd.objc.msgSend!(T, A)(self, cmd, args);
 }
 
-T objd_msgSend(T, U, bool safe = SAFETY_DEFAULT, A...)(U self, SEL cmd, A args)
-in {
-	assert(self !is null);
-} body {
+T objd_msgSend(T, U, bool safe = SAFETY_DEFAULT, A...)(U self, SEL cmd, A args) {
+	if (self is null) {
+		static if (is(T == void))
+			return;
+		else
+			return T.init;
+	}
+
 	// the more specialized template should catch statically-typed ObjC objects
 	debug {
 		enforce(cast(objd.objc.id)self is null, "objd_msgSend() invoked with wrapped Objective-C object");
 	}
+	
+	assert(cmd != 0);
 	
 	Class cls = self.isa;
 	assert(cls !is null);
@@ -262,7 +268,7 @@ in {
 	
 	if (method.selector != cmd) {
 		do {
-			method = cast(Method)cls.methods.get(cmd);
+			method = cls.methods.get(cmd);
 			if (method !is null) {
 				cls.cachedMethods[slot] = method;
 				goto invoke;
@@ -276,16 +282,17 @@ in {
 		}
 		
 		auto doesNotRecognize = sel_registerName("doesNotRecognizeSelector:");
-		if (cmd == doesNotRecognize) {
-			abort();
-		} else {
+		if (cmd != doesNotRecognize) {
 			objd_msgSend!(void)(self, doesNotRecognize, cmd);
+		
+			static if (is(T == void))
+				return;
+			else
+				return T.init;
 		}
 		
-		static if (is(T == void))
-			return;
-		else
-			return T.init;
+		abort();
+		assert(0);
 	}
 	
 invoke:
