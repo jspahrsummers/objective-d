@@ -297,6 +297,8 @@ public:
 	}
 }
 
+enum id nil = null;
+
 /* Traits templates */
 package bool TypeConvertibleToTypeInfo(T)(immutable TypeInfo info) {
 	foreach (type; TypeAndImplicitConversions!T) {
