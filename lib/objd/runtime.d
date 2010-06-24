@@ -28,7 +28,6 @@ public import objd.types;
 static import objd.objc;
 import core.memory;
 import objd.hashset;
-import objd.hashtable;
 import std.c.stdlib;
 import std.contracts;
 import std.stdio;
@@ -41,30 +40,26 @@ enum RUNTIME_PATCH_VERSION = 0;
 enum RUNTIME_VERSION = RUNTIME_MAJOR_VERSION.stringof ~ "." ~ RUNTIME_MINOR_VERSION.stringof ~ "." ~ RUNTIME_PATCH_VERSION.stringof;
 
 /* Selectors */
-private __gshared HashSet!SEL mappedSelectors;
+private __gshared HashSet!(immutable string) mappedSelectors;
 
 static this () {
-	mappedSelectors = new typeof(mappedSelectors);
+	mappedSelectors = new typeof(mappedSelectors)();
 }
 
 string sel_getName (SEL aSelector) {
-	return aSelector.name;
+	return mappedSelectors.get(aSelector);
 }
 
-void sel_preloadMapping (string[hash_value] map) {
-	// preallocate enough space
-	mappedSelectors.capacity = mappedSelectors.length + map.length;
-
+void sel_preloadMapping (string[SEL] map) {
 	foreach (key, value; map) {
 		assert(value !is null && value.length > 0);
 		
-		auto selector = SEL(value, key);
 		debug {
-			auto existing = mappedSelectors.get(selector);
-			enforce(existing is null || (*existing).name == value, "selector in preloaded map has already been mapped to a different string");
+			auto existing = mappedSelectors.get(key);
+			enforce(existing is null || existing == value, "selector in preloaded map has already been mapped to a different string");
 		}
 		
-		mappedSelectors.add(selector);
+		mappedSelectors.put(value, key);
 	}
 }
 
@@ -76,71 +71,45 @@ in {
 		writefln("registering selector %s", str);
 	}
 
-	return mappedSelectors.add(SEL(str));
+	auto hash = murmur_hash(str);
+	
+	debug {
+		foreach (key, value; mappedSelectors) {
+			if (value == str) {
+				enforce(key == hash, "mapped selector already exists, but hash is incorrect");
+				return key;
+			}
+		}
+	}
+	
+	return mappedSelectors.put(str, hash);
 }
 
 /* Messaging */
 class Method {
 public:
 	immutable SEL selector;
-	
-	version (unsafe) {}
-	else {
-		immutable TypeInfo[] types;
-	}
-	
+	immutable TypeInfo returnType;
+	immutable TypeInfo[] argumentTypes;
 	immutable IMP implementation;
 	
 	static Method define(T, A...)(SEL selector, T function (id, SEL, A) impl) {
-		version (unsafe) {
-			return new Method(selector, cast(immutable IMP)(impl));
-		} else {
-			TypeInfo[] types = new TypeInfo[A.length + 1];
-			
-			types[0] = typeid(Unqual!(OriginalType!T));
-			foreach (i, type; A)
-				types[i + 1] = typeid(Unqual!(OriginalType!type));
-			
-			return new Method(selector, cast(immutable IMP)(impl), assumeUnique(types));
-		}
+		TypeInfo[] argTypes = new TypeInfo[A.length];
+		foreach (i, type; A)
+			argTypes[i] = typeid(Unqual!(OriginalType!type));
+		
+		return new Method(selector, cast(immutable IMP)(impl), cast(immutable)(typeid(Unqual!(OriginalType!T))), assumeUnique(argTypes));
 	}
 	
-	this (immutable SEL selector, immutable IMP implementation, immutable TypeInfo[] types...) {
+	this (immutable SEL selector, immutable IMP implementation, immutable TypeInfo returnType, immutable TypeInfo[] argumentTypes...) {
 		this.selector = selector;
 		this.implementation = implementation;
-		
-		version (unsafe) {}
-		else {
-			this.types = types;
-		}
+		this.returnType = returnType;
+		this.argumentTypes = argumentTypes;
 	}
 	
-	override bool opEquals (Object obj) {
-		auto m = cast(typeof(this))obj;
-		if (m is null)
-			return false;
-	
-		bool eq = this.selector == m.selector && this.implementation == m.implementation;
-		version (unsafe) {}
-		else {
-			eq &= (this.types == m.types);
-		}
-		
-		return eq;
-	}
-	
-	version (unsafe) {}
-	else {
-		@property immutable(TypeInfo) returnType () const {
-			return types[0];
-		}
-		
-		@property immutable(TypeInfo)[] argumentTypes () const {
-			if (types.length > 1)
-				return types[1 .. $];
-			else
-				return [];
-		}
+	bool opEquals (const Method m) const {
+		return this.selector == m.selector && this.returnType == m.returnType && this.argumentTypes == m.argumentTypes && this.implementation == m.implementation;
 	}
 	
 	override string toString () const {
@@ -168,7 +137,6 @@ public:
 		this.superclass = superclass;
 		this.name = name;
 		this.methods = new typeof(methods);
-		//this.cachedMethods = new typeof(cachedMethods)(METHOD_STARTING_CACHE_SIZE);
 	}
 	
 	/* Reflection */
@@ -177,25 +145,30 @@ public:
 			writefln("adding selector %s to %s", name, this.name);
 		}
 		
-		if (methods.contains(name))
+		if (methods.get(name) !is null)
 			return false;
-		
-		methods.set(name, Method.define(name, impl));
-		invalidateCache();
-		return true;
+		else {
+			methods.put(Method.define(name, impl), name);
+			invalidateCache();
+			return true;
+		}
 	}
 	
 	void addProtocol (immutable Protocol p) {
 		protocols ~= p;
 	}
 	
-	void replaceMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
+	Method replaceMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
 		debug {
 			writefln("replacing selector %s in %s", name, this.name);
 		}
 		
-		methods.set(name, Method.define(name, impl));
+		methods.remove(name);
+		
+		auto method = Method.define(name, impl);
+		methods.put(method, name);
 		invalidateCache();
+		return method;
 	}
 	
 	/* Iteration over a class hierarchy */
@@ -232,20 +205,19 @@ public:
 	}
 
 public:
-	HashTable!(SEL, Method) methods;
-	//HashTable!(SEL, Method, true) cachedMethods;
+	HashSet!(Method) methods;
 	Method[METHOD_CACHE_SIZE] cachedMethods;
 	
 	immutable(Protocol)[] protocols;
 	
 	bool hasMethod (SEL name) const {
-		return methods.contains(name);
+		return methods.get(name) !is null;
 	}
 	
 	void invalidateCache () {
-		//cachedMethods.clear();
 		foreach (i; 0 .. METHOD_CACHE_SIZE)
-			cachedMethods[i] = null;
+			// fill with dummy methods to speed up cache checks
+			cachedMethods[i] = new Method(0, null, null, null);
 	}
 }
 
@@ -259,14 +231,14 @@ version (unsafe) {
 	enum SAFETY_DEFAULT = true;
 }
 
-objd.objc.ObjCType!T objd_msgSend(T, U : objd.objc.id, A...)(U self, SEL cmd, A args)
+objd.objc.ObjCType!T objd_msgSend(T, U : objd.objc.id, bool safe = false, A...)(U self, SEL cmd, A args)
 in {
 	assert(self !is null);
 } body {
 	return objd.objc.msgSend!(T, A)(self, cmd, args);
 }
 
-T objd_msgSend(T, U, A...)(U self, SEL cmd, A args)
+T objd_msgSend(T, U, bool safe = SAFETY_DEFAULT, A...)(U self, SEL cmd, A args)
 in {
 	assert(self !is null);
 } body {
@@ -282,18 +254,16 @@ in {
 		//writefln("invoking method %s with return type %s", cmd, typeid(T));
 	}
 	
-	//auto method = cls.cachedMethods.get(cmd);
-	enum slot = cmd.hash & METHOD_CACHE_MASK;
+	enum slot = cmd & METHOD_CACHE_MASK;
 	auto method = cls.cachedMethods[slot];
 	debug {
 		//writefln("cached methods: %s", cls.cachedMethods);
 	}
 	
-	if (method is null || method.selector != cmd) {
+	if (method.selector != cmd) {
 		do {
-			method = cls.methods.get(cmd);
+			method = cast(Method)cls.methods.get(cmd);
 			if (method !is null) {
-				//cls.cachedMethods.set(cmd, method);
 				cls.cachedMethods[slot] = method;
 				goto invoke;
 			}
@@ -322,8 +292,7 @@ invoke:
 	// the safety checks below should always remain in release builds
 	// dynamic programming languages become dangerous without typechecking
 	
-	version (unsafe) {}
-	else {
+	static if (safe) {
 		enforce(TypeInfoConvertibleToType!T(method.returnType), format("requested return type %s does not match defined return type %s for method %s", typeid(T), method.returnType, cmd));
 		enforce(A.length == method.argumentTypes.length, format("number of arguments to method %s (%s) does not match %s defined parameters", cmd, A.length, method.argumentTypes.length));
 		

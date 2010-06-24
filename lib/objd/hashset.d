@@ -28,202 +28,164 @@ public import objd.hash;
 import std.stdio;
 import std.string;
 
-class HashSet(K, bool CACHE = false) {
+struct HashSetEntry(K) {
 public:
+	const K key;
+	immutable hash_value hash;
+	
+	this (const K key, immutable hash_value hash) {
+		this.key = key;
+		this.hash = hash;
+	}
+}
+
+class HashSet(K) {
+public:
+	HashSetEntry!(K)[] entries;
+	
 	this () {
-		buckets = new Entry[1];
+		entries = new typeof(entries[0])[1];
 	}
 	
-	this (size_t capacity) {
-		this();
-		this.capacity = capacity;
-	}
-	
-	@property size_t length () const {
-		return count;
-	}
-	
-	@property size_t capacity () const {
-		return buckets.length;
-	}
-	
-	@property size_t capacity (size_t value) {
-		if (value <= buckets.length)
-			return buckets.length;
-		
-		size_t newCapacity = buckets.length;
-		do
-			newCapacity <<= 1;
-		while (newCapacity < value);
-	
-		auto currentBuckets = buckets;
-		buckets = new Entry[newCapacity];
-		bucketMask = newCapacity - 1;
-		
-		foreach (ref const Entry entry; currentBuckets) {
-			if (!entry.empty)
-				add(entry.key, entry.hash);
+	const(K) get (hash_value hash) const {
+		auto startingSlot = hash & mask;
+		auto slot = startingSlot;
+		for (;;) {
+			if (entries[slot].hash == hash)
+				return entries[slot].key;
+			
+			// TODO: make quadratic
+			slot = (slot + 1) & mask;
+			
+			debug {
+				//writefln("get: incrementing slot, current load is %s", cast(double)length / entries.length);
+			}
+			
+			if (slot == startingSlot)
+				break;
 		}
 		
-		return newCapacity;
+		return null;
 	}
 	
-	bool contains (immutable K key) const {
-		return get(key             ) !is null;
-	}
-	
-	bool contains (immutable K key, hash_value precalcHash) const {
-		return get(key, precalcHash) !is null;
-	}
-	
-	immutable(K)* get (immutable K key) const {
-		return get(key, hashKey(key));
-	}
-	
-	immutable(K)* get (immutable K key, hash_value precalcHash) const {
-		debug {
-			enforce(precalcHash == hashKey(key), "hash of key does not match precalculated hash");
+	static if (is(K : void[])) {
+		hash_value put (const(K) key) {
+			return put(key, murmur_hash(key));
 		}
+	}
+	
+	hash_value put (const(K) key, hash_value hash)
+	in {
+		assert(key !is null);
+	} body {
+		expand(1);
 		
-		auto slot = precalcHash & bucketMask;
-		static if (CACHE) {
-			if (buckets[slot].empty || buckets[slot].key != key)
-				return null;
-			else
-				return &buckets[slot].key;
-		} else {
-			auto startingSlot = slot;
-			while (!buckets[slot].empty) {
-				if (buckets[slot].hash == precalcHash && buckets[slot].key == key)
-					return &buckets[slot].key;
-				
-				slot = (slot + 1) & bucketMask;
-				if (slot == startingSlot)
+		auto slot = hash & mask;
+		for (;;) {
+			if (entries[slot].key is null) {
+				++length;
+				entries[slot] = HashSetEntry!(K)(key, hash);
+				break;
+			} else if (entries[slot].hash == hash) {
+				if (entries[slot].key == key)
 					break;
+			} else
+				// keys shouldn't match if the hashes didn't
+				assert(entries[slot].key != key);
+			
+			// TODO: make quadratic
+			slot = (slot + 1) & mask;
+			
+			debug {
+				//writefln("put: incrementing slot, current load is %s", cast(double)length / entries.length);
 			}
-			
-			return null;
-		}
-	}
-	
-	immutable(K) add (immutable K key) {
-		return add(key, hashKey(key));
-	}
-	
-	immutable(K) add (immutable K key, hash_value precalcHash) {
-		expandIfNeeded();
-	
-		debug {
-			enforce(precalcHash == hashKey(key), "hash of key does not match precalculated hash");
 		}
 		
-		auto slot = precalcHash & bucketMask;
-		static if (CACHE) {
-			if (buckets[slot].empty)
-				++count;
-			
-			buckets[slot] = Entry(key, precalcHash);
-			return key;
-		} else {
-			while (!buckets[slot].empty) {
-				if (buckets[slot].hash == precalcHash && buckets[slot].key == key)
-					return buckets[slot].key;
-				
-				slot = (slot + 1) & bucketMask;
-			}
-			
-			buckets[slot] = Entry(key, precalcHash);
-			++count;
-			return key;
-		}
+		return hash;
 	}
 	
-	void clear () {
-		foreach (i; 0 .. capacity)
-			buckets[i] = Entry();
-		
-		count = 0;
-	}
-	
-	void remove (immutable K key) {
-		remove(key, hashKey(key));
-	}
-	
-	void remove (immutable K key, hash_value precalcHash) {
-		debug {
-			enforce(precalcHash == hashKey(key), "hash of key does not match precalculated hash");
-		}
-		
-		auto slot = precalcHash & bucketMask;
-		
-		static if (CACHE) {
-			if (buckets[slot].empty)
+	void remove (hash_value hash) {
+		auto startingSlot = hash & mask;
+		auto slot = startingSlot;
+		for (;;) {
+			if (entries[slot].hash == hash) {
+				entries[slot] = HashSetEntry!(K)(null, hash);
 				return;
+			}
 			
-			--count;
-		} else {
-			for (;;) {
-				if (buckets[slot].empty)
-					return;
-				else if (buckets[slot].hash == precalcHash || buckets[slot].key == key)
+			// TODO: make quadratic
+			slot = (slot + 1) & mask;
+			
+			debug {
+				//writefln("remove: incrementing slot, current load is %s", cast(double)length / entries.length);
+			}
+			
+			if (slot == startingSlot)
+				break;
+		}
+	}
+	
+	int opApply (int delegate (ref hash_value hash, ref const(K) key) dg) {
+		int result = 0;
+		
+		foreach (ref entry; entries) {
+			if (entry.key !is null) {
+				result = dg(entry.hash, entry.key);
+				if (result)
 					break;
-				
-				slot = (slot + 1) & bucketMask;
 			}
-			
-			auto nextSlot = (slot + 1) & bucketMask;
-			while (!buckets[nextSlot].empty) {
-				buckets[slot] = buckets[nextSlot];
-				
-				slot = nextSlot;
-				nextSlot = (slot + 1) & bucketMask;
-			}
-			
-			--count;
 		}
 		
-		buckets[slot] = Entry();
+		return result;
+	}
+	
+	override string toString () const {
+		string ret = "[\n";
+		
+		foreach (ref entry; entries) {
+			if (entry.key !is null)
+				ret ~= format("\t%s : %s\n", entry.hash, entry.key);
+		}
+		
+		return ret ~ "]";
+	}
+	
+	invariant () {
+		assert(entries !is null && entries.length > 0);
+		assert(entries.length >= length);
+		assert(mask == entries.length - 1);
 	}
 
 protected:
-	struct Entry {
-	public:
-		immutable K key;
-		immutable hash_value hash;
-		bool empty = true;
+	size_t length;
+	hash_value mask;
+	
+	void expand (size_t amount)
+	in {
+		assert(amount > 0);
+	} body {
+		size_t newLength = length + amount;
 		
-		this (immutable K key, immutable hash_value hash) {
-			this.key = key;
-			this.hash = hash;
-			this.empty = false;
+		size_t capacity = entries.length;
+		while (capacity * 7 / 10 < newLength)
+			capacity <<= 1;
+		
+		if (capacity == entries.length)
+			return;
+		
+		assert(capacity > entries.length);
+		
+		auto currentEntries = entries;
+		entries = new typeof(entries[0])[capacity];
+		mask = capacity - 1;
+		
+		foreach (ref entry; currentEntries) {
+			// TODO: make quadratic
+			auto slot = entry.hash & mask;
+			while (entries[slot].key !is null)
+				slot = (slot + 1) & mask;
+			
+			entries[slot] = entry;
 		}
 	}
-	
-	static if (is(K : const void[])) {
-		final pure hash_value hashKey (immutable K key) const {
-			return murmur_hash(key);
-		}
-	} else {
-		final hash_value hashKey (immutable K key) const {
-			static if (__traits(compiles, key.toHash()))
-				return key.toHash();
-			else {
-				// stupid Object const-incorrectness
-				auto deconst = cast(K)key;
-				return deconst.toHash();
-			}
-		}
-	}
-	
-	void expandIfNeeded () {
-		auto newCount = count + 1;
-	
-		// optimize for 70% load
-		if (newCount > capacity * 7 / 10)
-			capacity = newCount + newCount * 3 / 10;
-	}
-
-	Entry[] buckets;
-	hash_value bucketMask;
-	size_t count;
 }

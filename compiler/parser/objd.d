@@ -56,9 +56,7 @@ pure auto classInstanceName (dstring name) {
 	return name ~ "Inst";
 }
 
-immutable(Lexeme[]) registerSelector (dstring selector) {
-	immutable(Lexeme)[] output;
-
+immutable(Lexeme) registerSelector (dstring selector) {
 	auto conv = toUTF8(selector);
 	hash_value hash = murmur_hash(conv);
 	for (;;) {
@@ -72,16 +70,7 @@ immutable(Lexeme[]) registerSelector (dstring selector) {
 		hash = murmur_hash(conv, hash);
 	}
 	
-	// SEL("selectorName", hash)
-	output ~= objdNamespace("types");
-	output ~= newIdentifier("SEL");
-	output ~= newToken("(");
-	output ~= newString(selector);
-	output ~= newToken(",");
-	output ~= new Lexeme(Token.Number, to!(dstring)(hash) ~ "U"d, null, 0);
-	output ~= newToken(")");
-	
-	return assumeUnique(output);
+	return new Lexeme(Token.Number, to!(dstring)(hash) ~ "U"d, null, 0);
 }
 
 immutable(Lexeme[]) objdNamespace (dstring moduleName = "runtime") {
@@ -104,12 +93,12 @@ immutable(Lexeme[]) objdCaches () {
 		output ~= newToken(")");
 		output ~= newToken("{");
 		
-		// enum string[hash_value] mapping = [
+		// enum string[SEL] mapping = [
 		output ~= newIdentifier("enum");
 		output ~= newIdentifier("string");
 		output ~= newToken("[");
 		output ~= objdNamespace("types");
-		output ~= newIdentifier("hash_value");
+		output ~= newIdentifier("SEL");
 		output ~= newToken("]");
 		output ~= newIdentifier("mapping");
 		output ~= newToken("=");
@@ -644,7 +633,7 @@ immutable(Lexeme[]) parseSelector (ref immutable(Lexeme)[] lexemes) {
 			errorOut(next, "expected selector name or closing parenthesis");
 	}
 	
-	return registerSelector(selector);
+	return [ registerSelector(selector) ];
 }
 
 immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
