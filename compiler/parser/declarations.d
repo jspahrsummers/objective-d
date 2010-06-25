@@ -56,8 +56,17 @@ immutable(Lexeme[]) parseModule (ref immutable(Lexeme)[] lexemes) {
 immutable(Lexeme[]) parseDeclDefs (ref immutable(Lexeme)[] lexemes) {
 	immutable(Lexeme)[] output;
 
-	while (lexemes.length)
+	if (lexemes[0].token != Token.LBrace)
+		errorOut(lexemes[0], "expected {");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
+
+	while (lexemes[0].token != Token.RBrace)
 		output ~= parseDeclDef(lexemes);
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
 	
 	return assumeUnique(output);
 }
@@ -554,8 +563,14 @@ immutable(Lexeme[]) parseEnumDeclaration (ref immutable(Lexeme)[] lexemes) {
 	
 	if (lexemes[0].token == Token.LBrace)
 		output ~= parseEnumBody(lexemes);
+	else if (lexemes[0].token != Token.Assign)
+		errorOut(lexemes[0], "expected { or =");
 	else {
-		output ~= parseEnumMember(lexemes);
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		
+		output ~= parseAssignExpression(lexemes);
+	
 		if (lexemes[0].token != Token.Semicolon)
 			errorOut(lexemes[0], "expected ;");
 		
@@ -896,6 +911,9 @@ immutable(Lexeme[]) parseParameters (ref immutable(Lexeme)[] lexemes) {
 	
 	if (lexemes[0].token != Token.RParen)
 		errorOut(lexemes[0], "expected )");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
 	
 	return assumeUnique(output);
 }
