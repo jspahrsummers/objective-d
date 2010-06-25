@@ -106,8 +106,15 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 		break;
 	
 	case Token.Tilde:
-		// TODO: Destructor
-		assert(0);
+		if (lexemes[1].content == "this") {
+			output ~= lexemes[0 .. 2];
+			lexemes = lexemes[2 .. $];
+			
+			output ~= parseParameters(lexemes);
+			output ~= parseFunctionBody(lexemes);
+		}
+		
+		break;
 	
 	case Token.Identifier:
 		switch (lexemes[0].content) {
@@ -225,8 +232,14 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 			
 			break;
 		
-		case "const":
 		case "shared":
+			if (lexemes[1].content == "static") {
+				output ~= lexemes[0];
+				lexemes = lexemes[1 .. $];
+				goto case "static";
+			}
+			
+		case "const":
 		case "immutable":
 			if (lexemes[1].token == Token.LParen)
 				goto default;
