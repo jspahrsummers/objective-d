@@ -755,24 +755,7 @@ immutable(Lexeme[]) parseBasicType (ref immutable(Lexeme)[] lexemes) {
 			return assumeUnique(output);
 			
 		case "typeof":
-			if (lexemes[1].token != Token.LParen)
-				errorOut(lexemes[1], "expected (");
-				
-			output ~= lexemes[0 .. 2];
-			lexemes = lexemes[2 .. $];
-			
-			if (lexemes[0].token == Token.Identifier && lexemes[0].content == "return") {
-				output ~= lexemes[0];
-				lexemes = lexemes[1 .. $];
-			} else
-				output ~= parseExpression(lexemes);
-			
-			if (lexemes[0].token != Token.RParen)
-				errorOut(lexemes[0], "expected )");
-				
-			output ~= lexemes[0];
-			lexemes = lexemes[1 .. $];
-			return assumeUnique(output);
+			return parseTypeof(lexemes);
 		
 		default:
 			;
