@@ -650,7 +650,7 @@ immutable(Lexeme[]) lex (string file) {
 	dchar[] buffer;
 	ulong line = 1;
 	
-	dstring current = "";
+	dstring current;
 	Token currentToken;
 	dchar lastChar;
 	dchar closingDelimiter;
@@ -676,6 +676,16 @@ immutable(Lexeme[]) lex (string file) {
 		
 		current.length = 0;
 		skip = SkipType.None;
+	}
+	
+	void prependStringLexeme () {
+		assert(currentToken == Token.String);
+		
+		if (lexemes[$ - 1].token == Token.String) {
+			// TODO: handle issues with escapes
+			current = lexemes[$ - 1].content ~ current;
+			lexemes.length = lexemes.length - 1;
+		}
 	}
 	
 	/* Parse loop */
@@ -714,6 +724,7 @@ immutable(Lexeme[]) lex (string file) {
 			
 			case SkipType.String:
 				if (lastChar != '\\' && ch == '"') {
+					prependStringLexeme();
 					createLexeme();
 					continue;
 				} else if (ch == '\\' && lastChar == '\\') {
