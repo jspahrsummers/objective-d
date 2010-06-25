@@ -105,17 +105,26 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 		output ~= parseObjectiveCClass(lexemes);
 		break;
 	
+	case Token.Tilde:
+		// TODO: Destructor
+		assert(0);
+	
 	case Token.Identifier:
 		switch (lexemes[0].content) {
 		// TODO:
-		// Constructor
-		// Destructor
 		// SharedStaticConstructor
 		// SharedStaticDestructor
 		// ConditionalDeclaration
 		// TemplateDeclaration
 		// TemplateMixin
-		// MixinDeclaration
+		
+		case "this":
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			
+			output ~= parseParameters(lexemes);
+			output ~= parseFunctionBody(lexemes);
+			break;
 		
 		case "invariant":
 			if (lexemes[1].token != Token.LParen)
@@ -257,14 +266,14 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 					output ~= lexemes[0];
 					lexemes = lexemes[1 .. $];
 					
-					// TODO: are parentheses required?
-					if (lexemes[0].token == Token.LParen) {
-						if (lexemes[1].token != Token.RParen)
-							errorOut(lexemes[1], "expected )");
-						
-						output ~= lexemes[0 .. 2];
-						lexemes = lexemes[2 .. $];
-					}
+					if (lexemes[0].token != Token.LParen)
+						errorOut(lexemes[1], "expected (");
+					
+					if (lexemes[1].token != Token.RParen)
+						errorOut(lexemes[1], "expected )");
+					
+					output ~= lexemes[0 .. 2];
+					lexemes = lexemes[2 .. $];
 					
 					output ~= parseFunctionBody(lexemes);
 					break;
@@ -872,6 +881,24 @@ immutable(Lexeme[]) parseDeclaratorSuffixes (ref immutable(Lexeme)[] lexemes) {
 	return assumeUnique(output);
 }
 
+immutable(Lexeme[]) parseParameters (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	if (lexemes[0].token != Token.LParen)
+		errorOut(lexemes[0], "expected (");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
+	
+	if (lexemes[0].token != Token.RParen)
+		output ~= parseParameterList(lexemes);
+	
+	if (lexemes[0].token != Token.RParen)
+		errorOut(lexemes[0], "expected )");
+	
+	return assumeUnique(output);
+}
+
 immutable(Lexeme[]) parseParameterList (ref immutable(Lexeme)[] lexemes) {
 	immutable(Lexeme)[] output;
 	
@@ -993,17 +1020,10 @@ immutable(Lexeme[]) parseBasicType2 (ref immutable(Lexeme)[] lexemes) {
 		
 	case Token.Identifier:
 		if (lexemes[0].content == "delegate" || lexemes[0].content == "function") {
-			if (lexemes[1].token != Token.LParen)
-				errorOut(lexemes[1], "expected (");
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
 			
-			output ~= lexemes[0 .. 2];
-			lexemes = lexemes[2 .. $];
-			
-			if (lexemes[0].token != Token.RParen)
-				output ~= parseParameterList(lexemes);
-			
-			if (lexemes[0].token != Token.RParen)
-				errorOut(lexemes[0], "expected )");
+			output ~= parseParameters(lexemes);
 			
 			do {
 				output ~= lexemes[0];
