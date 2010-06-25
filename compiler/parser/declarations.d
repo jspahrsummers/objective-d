@@ -594,6 +594,23 @@ immutable(Lexeme[]) parseAggregateDeclaration (ref immutable(Lexeme)[] lexemes) 
 	output ~= lexemes[0];
 	lexemes = lexemes[1 .. $];
 	
+	if (lexemes[0].token != Token.Identifier)
+		errorOut(lexemes[0], "expected identifier");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
+	
+	// TODO: StructTemplateDeclaration
+	// TODO: UnionTemplateDeclaration
+	
+	if (lexemes[0].token == Token.Semicolon) {
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+	} else {
+		// TODO: StructBodyDeclaration
+		output ~= parseDeclarationBlock(lexemes);
+	}
+	
 	return assumeUnique(output);
 }
 
