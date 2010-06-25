@@ -51,7 +51,7 @@ extern (System) {
 		alias int BOOL;
 	
 		/* Selectors */
-		struct objc_selector {}
+		struct objc_selector;
 		alias objc_selector* SEL;
 		
 		/* Message sending */
