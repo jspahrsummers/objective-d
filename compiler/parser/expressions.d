@@ -447,9 +447,8 @@ immutable(Lexeme[]) parseNewExpression (ref immutable(Lexeme)[] lexemes) {
 			lexemes = lexemes[1 .. $];
 		}
 		
-		assert(false);
-		//output ~= parseBaseClassList(lexemes);
-		// { DeclDefs }
+		output ~= parseBaseClassList(lexemes);
+		output ~= parseDeclDefs(lexemes);
 	} else
 		output ~= parseDType(lexemes);
 	
