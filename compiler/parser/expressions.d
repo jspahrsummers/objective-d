@@ -569,6 +569,99 @@ immutable(Lexeme[]) parsePrimaryExpression (ref immutable(Lexeme)[] lexemes) {
 			errorOut(lexemes[0], "expected identifier");
 	
 	case Token.Identifier:
+		bool found = true;
+		switch (lexemes[0].content) {
+		case "assert":
+			if (lexemes[1].token != Token.LParen)
+				errorOut(lexemes[1], "expected (");
+			
+			output ~= lexemes[0 .. 2];
+			lexemes = lexemes[2 .. $];
+			
+			output ~= parseAssignExpression(lexemes);
+			if (lexemes[0].token == Token.Comma) {
+				output ~= lexemes[0];
+				lexemes = lexemes[1 .. $];
+				
+				output ~= parseAssignExpression(lexemes);
+			}
+			
+			if (lexemes[0].token != Token.RParen)
+				errorOut(lexemes[0], "expected )");
+				
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			break;
+		
+		case "import":
+			if (lexemes[1].token != Token.LParen)
+				errorOut(lexemes[1], "expected (");
+			
+			output ~= lexemes[0 .. 2];
+			lexemes = lexemes[2 .. $];
+			
+			output ~= parseAssignExpression(lexemes);
+			
+			if (lexemes[0].token != Token.RParen)
+				errorOut(lexemes[0], "expected )");
+				
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			break;
+		
+		case "mixin":
+			if (lexemes[1].token != Token.LParen)
+				errorOut(lexemes[1], "expected (");
+			
+			output ~= lexemes[0 .. 2];
+			lexemes = lexemes[2 .. $];
+			
+			// TODO: allow Objective-D string mixins?
+			output ~= parseAssignExpression(lexemes);
+			
+			if (lexemes[0].token != Token.RParen)
+				errorOut(lexemes[0], "expected )");
+				
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			break;
+		
+		case "typeof":
+			output ~= parseTypeof(lexemes);
+			break;
+		
+		case "typeid":
+			if (lexemes[1].token != Token.LParen)
+				errorOut(lexemes[1], "expected (");
+			
+			output ~= lexemes[0 .. 2];
+			lexemes = lexemes[2 .. $];
+			
+			auto save = lexemes;
+			try {
+				output ~= parseDType(lexemes);
+			} catch (ParseException) {
+				output ~= parseExpression(lexemes);
+			}
+			
+			if (lexemes[0].token != Token.RParen)
+				errorOut(lexemes[0], "expected )");
+				
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			break;
+		
+		// TODO:
+		// IsExpression
+		// TraitsExpression
+		
+		default:
+			found = false;
+		}
+		
+		if (found)
+			break;
+	
 	case Token.Dollar:
 	case Token.Number:
 	case Token.Character:
@@ -602,13 +695,6 @@ immutable(Lexeme[]) parsePrimaryExpression (ref immutable(Lexeme)[] lexemes) {
 	// TODO:
 	// AssocArrayLiteral
 	// FunctionLiteral
-	// AssertExpression
-	// MixinExpression
-	// ImportExpression
-	// Typeof
-	// TypeidExpression
-	// IsExpression
-	// TraitsExpression
 	default:
 		errorOut(lexemes[0], "expected expression or identifier");
 	}
@@ -633,5 +719,31 @@ immutable(Lexeme[]) parseArrayLiteral (ref immutable(Lexeme)[] lexemes) {
 	output ~= lexemes[0];
 	lexemes = lexemes[1 .. $];
 	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseTypeof (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	if (lexemes[0].content != "typeof")
+		errorOut(lexemes[0], "expected \"typeof\"");
+	
+	if (lexemes[1].token != Token.LParen)
+		errorOut(lexemes[1], "expected (");
+		
+	output ~= lexemes[0 .. 2];
+	lexemes = lexemes[2 .. $];
+	
+	if (lexemes[0].token == Token.Identifier && lexemes[0].content == "return") {
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+	} else
+		output ~= parseExpression(lexemes);
+	
+	if (lexemes[0].token != Token.RParen)
+		errorOut(lexemes[0], "expected )");
+		
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
 	return assumeUnique(output);
 }
