@@ -466,9 +466,7 @@ immutable(Lexeme[]) parseClassDeclaration (ref immutable(Lexeme)[] lexemes) {
 	// ClassTemplateDeclaration
 	
 	output ~= parseBaseClassList(lexemes);
-	
-	// TODO: ClassBody
-	output ~= parseBlockStatement(lexemes);
+	output ~= parseDeclarationBlock(lexemes);
 	
 	return assumeUnique(output);
 }
@@ -571,6 +569,18 @@ immutable(Lexeme[]) parseInterfaceDeclaration (ref immutable(Lexeme)[] lexemes) 
 	
 	output ~= lexemes[0];
 	lexemes = lexemes[1 .. $];
+	
+	if (lexemes[0].token != Token.Identifier)
+		errorOut(lexemes[0], "expected interface identifier");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
+	
+	// TODO:
+	// InterfaceTemplateDeclaration
+	
+	output ~= parseBaseClassList(lexemes);
+	output ~= parseDeclarationBlock(lexemes);
 	
 	return assumeUnique(output);
 }
