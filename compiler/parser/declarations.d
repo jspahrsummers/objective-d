@@ -101,13 +101,22 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 		// TODO:
 		// Constructor
 		// Destructor
-		// Invariant
 		// SharedStaticConstructor
 		// SharedStaticDestructor
 		// ConditionalDeclaration
 		// TemplateDeclaration
 		// TemplateMixin
 		// MixinDeclaration
+		
+		case "invariant":
+			if (lexemes[1].token != Token.LParen)
+				errorOut(lexemes[1], "expected (");
+			
+			if (lexemes[2].token != Token.RParen)
+				errorOut(lexemes[2], "expected )");
+			
+			output ~= parseBlockStatement(lexemes);
+			break;
 		
 		case "enum":
 			output ~= parseEnumDeclaration(lexemes);
@@ -123,17 +132,14 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 			break;
 		
 		case "pragma":
-			output ~= lexemes[0];
-			lexemes = lexemes[1 .. $];
+			if (lexemes[1].token != Token.LParen)
+				errorOut(lexemes[1], "expected (");
 			
-			if (lexemes[0].token != Token.LParen)
-				errorOut(lexemes[0], "expected (");
+			if (lexemes[2].token != Token.Identifier)
+				errorOut(lexemes[2], "expected pragma name");
 			
-			if (lexemes[1].token != Token.Identifier)
-				errorOut(lexemes[1], "expected pragma name");
-			
-			output ~= lexemes[0 .. 2];
-			lexemes = lexemes[2 .. $];
+			output ~= lexemes[0 .. 3];
+			lexemes = lexemes[3 .. $];
 			
 			if (lexemes[0].token == Token.Comma) {
 				output ~= lexemes[0];
