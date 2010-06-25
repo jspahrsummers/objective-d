@@ -650,6 +650,13 @@ immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	immutable(Lexeme)[] output;
 	lexemes = lexemes[1 .. $];
 	
+	if (lexemes[0].token == Token.RBracket) {
+		// this is a full slice
+		output = [ lbracket, lexemes[0] ];
+		lexemes = lexemes[1 .. $];
+		return assumeUnique(output);
+	}
+	
 	// receiver of the message
 	auto receiver = parseAssignExpression(lexemes);
 	
