@@ -63,6 +63,9 @@ void main () {
 	writeln("--- Invoking [nil new] and validating that response is nil");
 	assert([nil new] is nil);
 	
+	writeln("--- Invoking [nil class] and validating that response is nil");
+	assert([nil class] is nil);
+	
 	writeln("--- Invoking [obj class] and checking for identity with MyClass");
 	assert([obj class] is MyClass);
 	
