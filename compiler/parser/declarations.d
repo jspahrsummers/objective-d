@@ -99,11 +99,6 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 	case Token.Identifier:
 		switch (lexemes[0].content) {
 		// TODO:
-		// AlignAtribute
-		// Pragma
-		// EnumDeclaration
-		// InterfaceDeclaration
-		// AggregateDeclaration
 		// Constructor
 		// Destructor
 		// Invariant
@@ -113,6 +108,53 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 		// TemplateDeclaration
 		// TemplateMixin
 		// MixinDeclaration
+		
+		case "enum":
+			output ~= parseEnumDeclaration(lexemes);
+			break;
+		
+		case "interface":
+			output ~= parseInterfaceDeclaration(lexemes);
+			break;
+		
+		case "struct":
+		case "union":
+			output ~= parseAggregateDeclaration(lexemes);
+			break;
+		
+		case "pragma":
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			
+			if (lexemes[0].token != Token.LParen)
+				errorOut(lexemes[0], "expected (");
+			
+			if (lexemes[1].token != Token.Identifier)
+				errorOut(lexemes[1], "expected pragma name");
+			
+			output ~= lexemes[0 .. 2];
+			lexemes = lexemes[2 .. $];
+			
+			if (lexemes[0].token == Token.Comma) {
+				output ~= lexemes[0];
+				lexemes = lexemes[1 .. $];
+				
+				output ~= parseArgumentList(lexemes);
+			}
+			
+			if (lexemes[0].token != Token.RParen)
+				errorOut(lexemes[0], "expected )");
+			
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			
+			if (lexemes[0].token == Token.Colon) {
+				output ~= lexemes[0];
+				lexemes = lexemes[1 .. $];
+			} else
+				output ~= parseDeclarationBlock(lexemes);
+			
+			break;
 		
 		case "extern":
 			output ~= lexemes[0];
@@ -127,6 +169,28 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 				
 				output ~= lexemes[0 .. pos];
 				lexemes = lexemes[pos .. $];
+			}
+			
+			if (lexemes[0].token == Token.Colon) {
+				output ~= lexemes[0];
+				lexemes = lexemes[1 .. $];
+			} else
+				output ~= parseDeclarationBlock(lexemes);
+			
+			break;
+		
+		case "align":
+			output ~= lexemes[0];
+			
+			if (lexemes[0].token == Token.LParen) {
+				if (lexemes[1].token != Token.Number)
+					errorOut(lexemes[1], "expected alignment integer");
+				
+				if (lexemes[2].token != Token.RParen)
+					errorOut(lexemes[2], "expected )");
+				
+				output ~= lexemes[0 .. 3];
+				lexemes = lexemes[3 .. $];
 			}
 			
 			if (lexemes[0].token == Token.Colon) {
@@ -389,9 +453,6 @@ immutable(Lexeme[]) parseClassDeclaration (ref immutable(Lexeme)[] lexemes) {
 	if (lexemes[0].content != "class")
 		errorOut(lexemes[0], "expected \"class\"");
 	
-	// TODO:
-	// ClassTemplateDeclaration
-	
 	output ~= lexemes[0];
 	lexemes = lexemes[1 .. $];
 	
@@ -401,10 +462,127 @@ immutable(Lexeme[]) parseClassDeclaration (ref immutable(Lexeme)[] lexemes) {
 	output ~= lexemes[0];
 	lexemes = lexemes[1 .. $];
 	
+	// TODO:
+	// ClassTemplateDeclaration
+	
 	output ~= parseBaseClassList(lexemes);
 	
 	// TODO: ClassBody
 	output ~= parseBlockStatement(lexemes);
+	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseEnumDeclaration (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	if (lexemes[0].content != "enum")
+		errorOut(lexemes[0], "expected \"enum\"");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
+	
+	if (lexemes[0].token == Token.Identifier) {
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+	}
+	
+	if (lexemes[0].token == Token.Colon) {
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		
+		output ~= parseDType(lexemes);
+	}
+	
+	if (lexemes[0].token == Token.LBrace)
+		output ~= parseEnumBody(lexemes);
+	else {
+		output ~= parseEnumMember(lexemes);
+		if (lexemes[0].token != Token.Semicolon)
+			errorOut(lexemes[0], "expected ;");
+		
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+	}
+	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseEnumBody (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	if (lexemes[0].token != Token.LBrace)
+		errorOut(lexemes[0], "expected {");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
+	
+	for (;;) {
+		output ~= parseEnumMember(lexemes);
+		if (lexemes[0].token != Token.Comma)
+			break;
+		
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		if (lexemes[0].token == Token.RBrace)
+			break;
+	}
+	
+	if (lexemes[0].token != Token.RBrace)
+		errorOut(lexemes[0], "expected }");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
+	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseEnumMember (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	auto save = lexemes;
+	try {
+		output ~= parseDType(lexemes);
+	} catch (ParseException) {
+		lexemes = save;
+	}
+	
+	if (lexemes[0].token != Token.Identifier)
+		errorOut(lexemes[0], "expected identifier");
+
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
+	
+	if (lexemes[0].token == Token.Assign) {
+		output ~= lexemes[0];
+		lexemes = lexemes[1 .. $];
+		
+		output ~= parseAssignExpression(lexemes);
+	}
+	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseInterfaceDeclaration (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	if (lexemes[0].content != "interface")
+		errorOut(lexemes[0], "expected \"interface\"");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
+	
+	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseAggregateDeclaration (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+	
+	if (lexemes[0].content != "struct" && lexemes[0].content != "union")
+		errorOut(lexemes[0], "expected \"struct\" or \"union\"");
+	
+	output ~= lexemes[0];
+	lexemes = lexemes[1 .. $];
 	
 	return assumeUnique(output);
 }
