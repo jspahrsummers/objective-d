@@ -275,12 +275,19 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 			
 			if (lexemes[0].content != "import") {
 				switch (lexemes[0].content) {
+				case "~":
+					if (lexemes[1].content != "this")
+						errorOut(lexemes[1], "expected \"this\" in destructor name");
+					
+					output ~= lexemes[0];
+					lexemes = lexemes[1 .. $];
+				
 				case "this":
 					output ~= lexemes[0];
 					lexemes = lexemes[1 .. $];
 					
 					if (lexemes[0].token != Token.LParen)
-						errorOut(lexemes[1], "expected (");
+						errorOut(lexemes[0], "expected (");
 					
 					if (lexemes[1].token != Token.RParen)
 						errorOut(lexemes[1], "expected )");
