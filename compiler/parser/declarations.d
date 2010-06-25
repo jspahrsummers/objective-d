@@ -53,6 +53,15 @@ immutable(Lexeme[]) parseModule (ref immutable(Lexeme)[] lexemes) {
 	return assumeUnique(output);
 }
 
+immutable(Lexeme[]) parseDeclDefs (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+
+	while (lexemes.length)
+		output ~= parseDeclDef(lexemes);
+	
+	return assumeUnique(output);
+}
+
 immutable(Lexeme[]) parseModuleName (ref immutable(Lexeme)[] lexemes) {
 	immutable(Lexeme)[] output;
 	
@@ -309,6 +318,24 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 			output ~= parseClassDeclaration(lexemes);
 			break;
 		
+		case "mixin":
+			if (lexemes[1].token != Token.LParen)
+				errorOut(lexemes[1], "expected (");
+			
+			output ~= lexemes[0 .. 2];
+			lexemes = lexemes[2 .. $];
+			
+			// TODO: allow Objective-D string mixins?
+			output ~= parseAssignExpression(lexemes);
+			
+			if (lexemes[0].token != Token.RParen)
+				errorOut(lexemes[0], "expected )");
+			
+			if (lexemes[1].token != Token.Semicolon)
+				errorOut(lexemes[1], "expected ;");
+			
+			break;
+		
 		default:
 			output ~= parseDeclaration(lexemes);
 		}
@@ -472,7 +499,7 @@ immutable(Lexeme[]) parseClassDeclaration (ref immutable(Lexeme)[] lexemes) {
 	// ClassTemplateDeclaration
 	
 	output ~= parseBaseClassList(lexemes);
-	output ~= parseDeclarationBlock(lexemes);
+	output ~= parseDeclDefs(lexemes);
 	
 	return assumeUnique(output);
 }
@@ -586,7 +613,7 @@ immutable(Lexeme[]) parseInterfaceDeclaration (ref immutable(Lexeme)[] lexemes) 
 	// InterfaceTemplateDeclaration
 	
 	output ~= parseBaseClassList(lexemes);
-	output ~= parseDeclarationBlock(lexemes);
+	output ~= parseDeclDefs(lexemes);
 	
 	return assumeUnique(output);
 }
@@ -614,7 +641,7 @@ immutable(Lexeme[]) parseAggregateDeclaration (ref immutable(Lexeme)[] lexemes) 
 		lexemes = lexemes[1 .. $];
 	} else {
 		// TODO: StructBodyDeclaration
-		output ~= parseDeclarationBlock(lexemes);
+		output ~= parseDeclDefs(lexemes);
 	}
 	
 	return assumeUnique(output);
