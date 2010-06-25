@@ -119,8 +119,6 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 	case Token.Identifier:
 		switch (lexemes[0].content) {
 		// TODO:
-		// SharedStaticConstructor
-		// SharedStaticDestructor
 		// ConditionalDeclaration
 		// TemplateDeclaration
 		// TemplateMixin
