@@ -121,7 +121,6 @@ bool process (string[] inputFiles, string outputFile) {
 	// it also helps avoid clutter
 	writeLine("// Objective-D support modules");
 	writeLine("static import objd.runtime;");
-	writeLine("static import objd.objc;");
 	writeLine("import objd.types;");
 	writeLine();
 	writeLine("// Local reflection facilities");

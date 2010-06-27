@@ -33,124 +33,128 @@ import std.stdio;
 import std.string;
 import std.traits;
 
-extern (System) {
-	/* Cross-platform definitions */
-	invariant YES = true;
-	invariant NO = false;
-
-	// these types are unsafe as defined in Objective-C
-	// Objective-D provides an id wrapper (below) which can be used normally
-	alias void* objc_id;
-	alias objc_id objc_Class;
+version (objc_compat) {
+	extern (System) {
+		/* Cross-platform definitions */
+		invariant YES = true;
+		invariant NO = false;
 	
-	/* Platform-specific definitions */
-	version (darwin) {
-		/* Basic types */
-		alias int NSInteger;
-		alias uint NSUInteger;
-		alias int BOOL;
-	
-		/* Selectors */
-		struct objc_selector;
-		alias objc_selector* SEL;
+		// these types are unsafe as defined in Objective-C
+		// Objective-D provides an id wrapper (below) which can be used normally
+		alias void* objc_id;
+		alias objc_id objc_Class;
 		
-		/* Message sending */
-		objc_id objc_msgSend (objc_id, SEL, ...);
+		/* Platform-specific definitions */
+		version (darwin) {
+			/* Basic types */
+			alias int NSInteger;
+			alias uint NSUInteger;
+			alias int BOOL;
 		
-		/* Reflection */
-		const(char)* class_getName (objc_Class);
-		objc_id objc_getClass (const char*);
-		const(char)* object_getClassName (objc_id);
-		SEL sel_registerName (const char*);
+			/* Selectors */
+			struct objc_selector;
+			alias objc_selector* SEL;
+			
+			/* Message sending */
+			objc_id objc_msgSend (objc_id, SEL, ...);
+			
+			/* Reflection */
+			const(char)* class_getName (objc_Class);
+			objc_id objc_getClass (const char*);
+			const(char)* object_getClassName (objc_id);
+			SEL sel_registerName (const char*);
+		}
+		
+		// internal template used to cast objc_msgSend to the correct type
+		private template FuncPtr(R, A...) {
+			alias R function (A...) FuncPtr;
+		}
 	}
 	
-	// internal template used to cast objc_msgSend to the correct type
-	private template FuncPtr(R, A...) {
-		alias R function (A...) FuncPtr;
-	}
-}
-
-alias id Class;
-
-class id : objd.types.id {
-public:
-	this (string className) {
+	alias id Class;
+	
+	class id : objd.types.id {
+	public:
+		this (string className) {
+			debug {
+				this.className = className;
+			}
+		
+			this.ptr = objc_getClass(toStringz(className));
+			this.isClass = true;
+		}
+		
+		override bool opEquals (Object other) const {
+			auto obj = cast(id)other;
+			if (obj is null)
+				return false;
+			
+			return cast(bool)msgSend!(BOOL)(cast(Unqual!(typeof(this)))this, objd.runtime.sel_registerName("isEqual:"), obj.ptr);
+		}
+		
+		// though the "description" method is rather portable, NSString probably isn't
+		version (darwin) {
+			override string toString () const {
+				if (ptr is null)
+					return "(null)";
+				else
+					return stringFromNSString(msgSend!(id)(cast(Unqual!(typeof(this)))this, objd.runtime.sel_registerName("description")));
+			}
+		}
+		
+	package:
+		objc_id ptr;
+		immutable bool isClass;
+		
 		debug {
-			this.className = className;
+			string className;
 		}
-	
-		this.ptr = objc_getClass(toStringz(className));
-		this.isClass = true;
-	}
-	
-	override bool opEquals (Object other) const {
-		auto obj = cast(id)other;
-		if (obj is null)
-			return false;
 		
-		return cast(bool)msgSend!(BOOL)(cast(Unqual!(typeof(this)))this, objd.runtime.sel_registerName("isEqual:"), obj.ptr);
-	}
-	
-	// though the "description" method is rather portable, NSString probably isn't
-	version (darwin) {
-		override string toString () const {
-			if (ptr is null)
-				return "(null)";
-			else
-				return stringFromNSString(msgSend!(id)(cast(Unqual!(typeof(this)))this, objd.runtime.sel_registerName("description")));
+		this (objc_id ptr) {
+			this.ptr = ptr;
+			this.isClass = false;
 		}
 	}
 	
-package:
-	objc_id ptr;
-	immutable bool isClass;
-	
-	debug {
-		string className;
-	}
-	
-	this (objc_id ptr) {
-		this.ptr = ptr;
-		this.isClass = false;
-	}
-}
-
-ObjCType!T msgSend(T, A...)(id self, objd.types.SEL cmd, A args) {
-	static if (is(T == objd.types.id) || is(T : id)) {
-		auto funcptr = cast(FuncPtr!(objc_id, objc_id, SEL, A))&objc_msgSend;
-		
-		auto ret = funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
-		return new id(ret);
-	} else {
-		auto funcptr = cast(FuncPtr!(T, objc_id, SEL, A))&objc_msgSend;
-		
-		static if (is(T == void))
-			funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
-		else {
+	ObjCType!T msgSend(T, A...)(id self, objd.types.SEL cmd, A args) {
+		static if (is(T == objd.types.id) || is(T : id)) {
+			auto funcptr = cast(FuncPtr!(objc_id, objc_id, SEL, A))&objc_msgSend;
+			
 			auto ret = funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
-			return ret;
+			return new id(ret);
+		} else {
+			auto funcptr = cast(FuncPtr!(T, objc_id, SEL, A))&objc_msgSend;
+			
+			static if (is(T == void))
+				funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
+			else {
+				auto ret = funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
+				return ret;
+			}
 		}
 	}
-}
-
-package template ObjCType(T) {
-	static if (is(T == objd.types.id) || is(T : id))
-		alias id ObjCType;
-	else
-		alias T ObjCType;
-}
-
-// NSString probably isn't very portable
-version (darwin) {
-	string stringFromNSString (id str) {
-		if (str is null || str.ptr is null)
-			return "(null)";
 	
-		auto bytes = msgSend!(const(char)*)(str, objd.runtime.sel_registerName("UTF8String"));
-		auto len = strlen(bytes);
-		
-		auto newStr = new char[len];
-		strncpy(newStr.ptr, bytes, len);
-		return assumeUnique(newStr);
+	package template ObjCType(T) {
+		static if (is(T == objd.types.id) || is(T : id))
+			alias id ObjCType;
+		else
+			alias T ObjCType;
 	}
+	
+	// NSString probably isn't very portable
+	version (darwin) {
+		string stringFromNSString (id str) {
+			if (str is null || str.ptr is null)
+				return "(null)";
+		
+			auto bytes = msgSend!(const(char)*)(str, objd.runtime.sel_registerName("UTF8String"));
+			auto len = strlen(bytes);
+			
+			auto newStr = new char[len];
+			strncpy(newStr.ptr, bytes, len);
+			return assumeUnique(newStr);
+		}
+	}
+} else {
+	pragma(msg, "*** Warning: objd.objc imported when not compiled with -version=objc_compat");
 }

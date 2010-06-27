@@ -128,7 +128,6 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 	case Token.Identifier:
 		switch (lexemes[0].content) {
 		// TODO:
-		// ConditionalDeclaration
 		// TemplateDeclaration
 		// TemplateMixin
 		
@@ -275,6 +274,72 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 				output ~= parseDeclarationBlock(lexemes);
 			
 			break;
+				
+		case "else":
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			
+			if (lexemes[0].content == "static") {
+				output ~= lexemes[0];
+				lexemes = lexemes[1 .. $];
+				
+				if (lexemes[0].content != "if")
+					errorOut(lexemes[0], "expected \"if\"");
+			}
+			
+			if (lexemes[0].content == "if") {
+				if (lexemes[1].token != Token.LParen)
+					errorOut(lexemes[1], "expected (");
+					
+				output ~= lexemes[0 .. 2];
+				lexemes = lexemes[2 .. $];
+				
+				output ~= parseAssignExpression(lexemes);
+				if (lexemes[0].token != Token.RParen)
+					errorOut(lexemes[0], "expected )");
+				
+				output ~= lexemes[0];
+				lexemes = lexemes[1 .. $];
+			}
+			
+			output ~= parseDeclarationBlock(lexemes);
+			break;
+		
+		case "version":
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			
+			if (lexemes[0].token == Token.LParen) {
+				if (lexemes[1].token != Token.Number && lexemes[1].token != Token.Identifier)
+					errorOut(lexemes[1], "expected version number or identifier");
+				
+				if (lexemes[2].token != Token.RParen)
+					errorOut(lexemes[2], "expected )");
+				
+				output ~= lexemes[0 .. 3];
+				lexemes = lexemes[3 .. $];
+				
+				output ~= parseDeclarationBlock(lexemes);
+			} else if (lexemes[0].token == Token.Assign) {
+				if (lexemes[1].token != Token.Number && lexemes[1].token != Token.Identifier)
+					errorOut(lexemes[1], "expected version number or identifier");
+				
+				if (lexemes[2].token != Token.Semicolon)
+					errorOut(lexemes[2], "expected ;");
+				
+				output ~= lexemes[0 .. 3];
+				lexemes = lexemes[3 .. $];
+			} else
+				errorOut(lexemes[0], "expected ( or =");
+			
+			break;
+		
+		case "debug":
+			output ~= lexemes[0];
+			lexemes = lexemes[1 .. $];
+			
+			output ~= parseDeclarationBlock(lexemes);
+			break;
 		
 		case "static":
 			output ~= lexemes[0];
@@ -325,6 +390,23 @@ immutable(Lexeme[]) parseDeclDef (ref immutable(Lexeme)[] lexemes) {
 					
 					output ~= lexemes[0];
 					lexemes = lexemes[1 .. $];
+					break;
+				
+				case "if":
+					if (lexemes[1].token != Token.LParen)
+						errorOut(lexemes[1], "expected (");
+						
+					output ~= lexemes[0 .. 2];
+					lexemes = lexemes[2 .. $];
+					
+					output ~= parseAssignExpression(lexemes);
+					if (lexemes[0].token != Token.RParen)
+						errorOut(lexemes[0], "expected )");
+					
+					output ~= lexemes[0];
+					lexemes = lexemes[1 .. $];
+					
+					output ~= parseDeclarationBlock(lexemes);
 					break;
 				
 				default:

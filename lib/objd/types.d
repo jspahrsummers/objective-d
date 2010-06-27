@@ -24,7 +24,6 @@
  */
 
 module objd.types;
-static import objd.objc;
 import objd.hash;
 import objd.runtime;
 import std.contracts;

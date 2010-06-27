@@ -231,11 +231,13 @@ version (unsafe) {
 	enum SAFETY_DEFAULT = true;
 }
 
-objd.objc.ObjCType!T objd_msgSend(T, U : objd.objc.id, bool safe = false, A...)(U self, SEL cmd, A args)
-in {
-	assert(self !is null);
-} body {
-	return objd.objc.msgSend!(T, A)(self, cmd, args);
+version (objc_compat) {
+	objd.objc.ObjCType!T objd_msgSend(T, U : objd.objc.id, bool safe = false, A...)(U self, SEL cmd, A args)
+	in {
+		assert(self !is null);
+	} body {
+		return objd.objc.msgSend!(T, A)(self, cmd, args);
+	}
 }
 
 T objd_msgSend(T, U, bool safe = SAFETY_DEFAULT, A...)(U self, SEL cmd, A args) {
@@ -246,9 +248,11 @@ T objd_msgSend(T, U, bool safe = SAFETY_DEFAULT, A...)(U self, SEL cmd, A args) 
 			return T.init;
 	}
 
-	// the more specialized template should catch statically-typed ObjC objects
-	debug {
-		enforce(cast(objd.objc.id)self is null, "objd_msgSend() invoked with wrapped Objective-C object");
+	version (objc_compat) {
+		// the more specialized template should catch statically-typed ObjC objects
+		debug {
+			enforce(cast(objd.objc.id)self is null, "objd_msgSend() invoked with wrapped Objective-C object");
+		}
 	}
 	
 	assert(cmd != 0);
