@@ -64,7 +64,14 @@ void main () {
 	}
 	
 	try {
-		objd_msgSend!(objd.objc.id)(MObject, @selector(class));
+		objd_msgSend!(string)(MObject, @selector(class));
+		throw new Error("exception not thrown");
+	} catch (Exception ex) {
+		writefln("  - %s", ex.msg);
+	}
+	
+	try {
+		objd_msgSend!(Exception)(MObject, @selector(class));
 		throw new Error("exception not thrown");
 	} catch (Exception ex) {
 		writefln("  - %s", ex.msg);

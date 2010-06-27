@@ -34,5 +34,5 @@ public:
 }
 
 void errorOut(T...)(immutable Lexeme lexeme, T args) {
-	throw new ParseException(format("%s:%s: ", lexeme.file, lexeme.line) ~ format(args) ~ format(" near %s\n", lexeme.content));
+	throw new ParseException(format("%s:%s near %s: ", lexeme.file, lexeme.line, lexeme.content) ~ format(args) ~ "\n");
 }
