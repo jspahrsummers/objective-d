@@ -34,9 +34,11 @@ import std.contracts;
 import std.conv;
 import std.utf;
 
+enum dstring OBJD_METHOD_PREFIX = "msg_";
+
 private dstring[hash_value] knownSelectors;
 
-pure auto selectorToIdentifier (dstring selector) {
+pure auto selectorToIdentifier (dstring selector, dstring prefix = "_objd_sel_") {
 	auto ret = new dchar[selector.length];
 	foreach (i, ch; selector) {
 		if (ch == ':')
@@ -45,7 +47,7 @@ pure auto selectorToIdentifier (dstring selector) {
 			ret[i] = ch;
 	}
 	
-	return "_objd_sel_" ~ assumeUnique(ret);
+	return prefix ~ assumeUnique(ret);
 }
 
 pure auto metaClassName (dstring name) {
@@ -332,6 +334,78 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	//  } /* this () */
 	output ~= newToken("}");
 	
+	auto vars = parseVariableDefinitions(className, lexemes);
+	
+	// includes @end
+	auto methods = parseMethodDefinitions(lexemes);
+	
+	{
+		immutable(Lexeme)[] allocMethodBody;
+		
+		// {
+		allocMethodBody ~= newToken("{");
+		
+		// id obj = new ClassNameInst;
+		allocMethodBody ~= newIdentifier("id");
+		allocMethodBody ~= newIdentifier("obj");
+		allocMethodBody ~= newToken("=");
+		allocMethodBody ~= newIdentifier("new");
+		allocMethodBody ~= classInstance;
+		allocMethodBody ~= newToken(";");
+		
+		// obj.isa = ClassName;
+		allocMethodBody ~= newIdentifier("obj");
+		allocMethodBody ~= newToken(".");
+		allocMethodBody ~= newIdentifier("isa");
+		allocMethodBody ~= newToken("=");
+		allocMethodBody ~= classNameL;
+		allocMethodBody ~= newToken(";");
+		
+		// return obj;
+		allocMethodBody ~= newIdentifier("return");
+		allocMethodBody ~= newIdentifier("obj");
+		allocMethodBody ~= newToken(";");
+		
+		// } /* alloc */
+		allocMethodBody ~= newToken("}");
+		
+		// add the generated 'alloc' method to the class
+		methods ~= new Method(true, [ newIdentifier("id") ], "alloc", [], assumeUnique(allocMethodBody));
+	}
+	
+	output ~= newIdentifier("public");
+	output ~= newToken(":");
+	foreach (method; methods) {
+		// implement class methods as member functions
+		if (!method.classMethod)
+			continue;
+		
+		// static return_type selector_asIdentifier__ (
+		output ~= newIdentifier("static");
+		output ~= method.returnType;
+		output ~= newIdentifier(selectorToIdentifier(method.selector, OBJD_METHOD_PREFIX));
+		output ~= newToken("(");
+			
+		// MetaClassName self, SEL cmd
+		output ~= metaClass;
+		output ~= newIdentifier("self");
+		output ~= newToken(",");
+		output ~= newIdentifier("SEL");
+		output ~= newIdentifier("cmd");
+		
+		foreach (ref param; method.parameters) {
+			// , parameter_type parameter_name
+			output ~= newToken(",");
+			output ~= param.type;
+			output ~= newIdentifier(param.name);
+		}
+		
+		// ) /* method header */
+		output ~= newToken(")");
+		
+		output ~= method.implementationBody;
+	}
+	
 	// } /* class MetaClassName */
 	output ~= newToken("}");
 	
@@ -343,7 +417,40 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	output ~= newIdentifier("Instance");
 	output ~= newToken("{");
 	
-	output ~= parseVariableDefinitions(className, lexemes);
+	output ~= vars;
+	
+	output ~= newIdentifier("public");
+	output ~= newToken(":");
+	foreach (method; methods) {
+		// implement instance methods as member functions
+		if (method.classMethod)
+			continue;
+		
+		// static return_type selector_asIdentifier__ (
+		output ~= newIdentifier("static");
+		output ~= method.returnType;
+		output ~= newIdentifier(selectorToIdentifier(method.selector, OBJD_METHOD_PREFIX));
+		output ~= newToken("(");
+			
+		// ClassNameInst self, SEL cmd
+		output ~= classInstance;
+		output ~= newIdentifier("self");
+		output ~= newToken(",");
+		output ~= newIdentifier("SEL");
+		output ~= newIdentifier("cmd");
+		
+		foreach (ref param; method.parameters) {
+			// , parameter_type parameter_name
+			output ~= newToken(",");
+			output ~= param.type;
+			output ~= newIdentifier(param.name);
+		}
+		
+		// ) /* method header */
+		output ~= newToken(")");
+		
+		output ~= method.implementationBody;
+	}
 	
 	// } /* class ClassNameInst */
 	output ~= newToken("}");
@@ -364,57 +471,6 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	output ~= newToken(")");
 	output ~= newToken(";");
 	
-	// ClassName.isa.addMethod(sel_registerName("alloc")
-	output ~= classNameL;
-	output ~= newToken(".");
-	output ~= newIdentifier("isa");
-	output ~= newToken(".");
-	output ~= newIdentifier("addMethod");
-	output ~= newToken("(");
-	output ~= registerSelector("alloc");
-	
-	// , function id (id self, SEL cmd) {
-	output ~= newToken(",");
-	output ~= newIdentifier("function");
-	output ~= newIdentifier("id");
-	output ~= newToken("(");
-	output ~= newIdentifier("id");
-	output ~= newIdentifier("self");
-	output ~= newToken(",");
-	output ~= newIdentifier("SEL");
-	output ~= newIdentifier("cmd");
-	output ~= newToken(")");
-	output ~= newToken("{");
-	
-	// id obj = new ClassNameInst;
-	output ~= newIdentifier("id");
-	output ~= newIdentifier("obj");
-	output ~= newToken("=");
-	output ~= newIdentifier("new");
-	output ~= classInstance;
-	output ~= newToken(";");
-	
-	// obj.isa = ClassName;
-	output ~= newIdentifier("obj");
-	output ~= newToken(".");
-	output ~= newIdentifier("isa");
-	output ~= newToken("=");
-	output ~= classNameL;
-	output ~= newToken(";");
-	
-	// return obj;
-	output ~= newIdentifier("return");
-	output ~= newIdentifier("obj");
-	output ~= newToken(";");
-	
-	// }); /* ClassName.isa.addMethod() */
-	output ~= newToken("}");
-	output ~= newToken(")");
-	output ~= newToken(";");
-	
-	// includes @end
-	auto methods = parseMethodDefinitions(lexemes);
-	
 	foreach (method; methods) {
 		// this is inside a module constructor, so we can add methods
 		// ClassName.
@@ -434,11 +490,9 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 		// sel_registerName("name")
 		output ~= registerSelector(method.selector);
 		
-		// , function return_type (
+		// , &
 		output ~= newToken(",");
-		output ~= newIdentifier("function");
-		output ~= method.returnType;
-		output ~= newToken("(");
+		output ~= newToken("&");
 		
 		if (method.classMethod)
 			// MetaClassName
@@ -446,24 +500,10 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 		else
 			// ClassNameInst
 			output ~= classInstance;
-			
-		// self, SEL cmd
-		output ~= newIdentifier("self");
-		output ~= newToken(",");
-		output ~= newIdentifier("SEL");
-		output ~= newIdentifier("cmd");
 		
-		foreach (ref param; method.parameters) {
-			// , parameter_type parameter_name
-			output ~= newToken(",");
-			output ~= param.type;
-			output ~= newIdentifier(param.name);
-		}
-		
-		// ) /* function */
-		output ~= newToken(")");
-		
-		output ~= method.implementationBody;
+		// .selector_asIdentifier__
+		output ~= newToken(".");
+		output ~= newIdentifier(selectorToIdentifier(method.selector, OBJD_METHOD_PREFIX));
 		
 		// ) /* addMethod */ ;
 		output ~= newToken(")");
@@ -563,7 +603,7 @@ immutable(Lexeme[]) parseVariableDefinitions (dstring className, ref immutable(L
 	return assumeUnique(output);
 }
 
-immutable(Method[]) parseMethodDefinitions (ref immutable(Lexeme)[] lexemes) {
+immutable(Method)[] parseMethodDefinitions (ref immutable(Lexeme)[] lexemes) {
 	immutable(Method)[] output;
 	
 	for (;;) {
@@ -581,7 +621,7 @@ immutable(Method[]) parseMethodDefinitions (ref immutable(Lexeme)[] lexemes) {
 		 }
 	}
 	
-	return assumeUnique(output);
+	return output;
 }
 
 immutable(Method) parseMethod (ref immutable(Lexeme)[] lexemes, bool classMethod) {

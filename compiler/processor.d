@@ -124,7 +124,7 @@ bool process (string[] inputFiles, string outputFile) {
 	writeLine("import objd.types;");
 	writeLine();
 	writeLine("// Local reflection facilities");
-	writeLine(`
+	writeLine(q{
 		private template _objDMethodReturnTypeAlias (string typename) {
 			mixin("
 				static if (is(" ~ typename ~ "))
@@ -133,9 +133,9 @@ bool process (string[] inputFiles, string outputFile) {
 					alias id _objDMethodReturnTypeAlias;
 			");
 		}
-	`);
+	});
 	
-	writeLine(`
+	writeLine(q{
 		private mixin template _objDAliasTypeToSelectorReturnType (T, string selector, string returnTypeName) {
 			mixin("
 				static if (!is(" ~ returnTypeName ~ "))
@@ -144,7 +144,7 @@ bool process (string[] inputFiles, string outputFile) {
 					static assert(is(" ~ returnTypeName ~ " == " ~ T.stringof ~ "), \"conflicting return types for selector " ~ selector ~ "\");
 			");
 		}
-	`);
+	});
 	writeLine();
 	
 	return success;
