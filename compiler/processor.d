@@ -114,38 +114,45 @@ bool process (string[] inputFiles, string outputFile) {
 		} catch (ParseException ex) {
 			writeln(ex.msg);
 			success = false;
+			
+			debug {
+				// get a nice pretty backtrace
+				throw ex;
+			}
 		}
 	}
 	
-	// write out necessary definitions at the end to allow module declaration at the top
-	// it also helps avoid clutter
-	writeLine("// Objective-D support modules");
-	writeLine("static import objd.runtime;");
-	writeLine("import objd.types;");
-	writeLine();
-	writeLine("// Local reflection facilities");
-	writeLine(q{
-		private template _objDMethodReturnTypeAlias (string typename) {
-			mixin("
-				static if (is(" ~ typename ~ "))
-					alias " ~ typename ~ " _objDMethodReturnTypeAlias;
-				else
-					alias id _objDMethodReturnTypeAlias;
-			");
-		}
-	});
-	
-	writeLine(q{
-		private mixin template _objDAliasTypeToSelectorReturnType (T, string selector, string returnTypeName) {
-			mixin("
-				static if (!is(" ~ returnTypeName ~ "))
-					alias " ~ T.stringof ~ " " ~ returnTypeName ~ ";
-				else
-					static assert(is(" ~ returnTypeName ~ " == " ~ T.stringof ~ "), \"conflicting return types for selector " ~ selector ~ "\");
-			");
-		}
-	});
-	writeLine();
+	if (success) {
+		// write out necessary definitions at the end to allow module declaration at the top
+		// it also helps avoid clutter
+		writeLine("// Objective-D support modules");
+		writeLine("static import objd.runtime;");
+		writeLine("import objd.types;");
+		writeLine();
+		writeLine("// Local reflection facilities");
+		writeLine(q{
+			private template _objDMethodReturnTypeAlias (string typename) {
+				mixin("
+					static if (is(" ~ typename ~ "))
+						alias " ~ typename ~ " _objDMethodReturnTypeAlias;
+					else
+						alias id _objDMethodReturnTypeAlias;
+				");
+			}
+		});
+		
+		writeLine(q{
+			private mixin template _objDAliasTypeToSelectorReturnType (T, string selector, string returnTypeName) {
+				mixin("
+					static if (!is(" ~ returnTypeName ~ "))
+						alias " ~ T.stringof ~ " " ~ returnTypeName ~ ";
+					else
+						static assert(is(" ~ returnTypeName ~ " == " ~ T.stringof ~ "), \"conflicting return types for selector " ~ selector ~ "\");
+				");
+			}
+		});
+		writeLine();
+	}
 	
 	return success;
 }

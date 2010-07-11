@@ -700,17 +700,15 @@ immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	// receiver of the message
 	auto receiver = parseAssignExpression(lexemes);
 	
-	if (lexemes[0].token == Token.Comma) {
-		// this seems to be an array literal
+	if (lexemes[0].token != Token.Identifier) {
+		// this seems to be an array literal of some kind
 		lexemes = save;
 		return parseArrayLiteral(lexemes);
 	}
 	
 	auto firstWord = lexemes[0];
-	if (firstWord.token != Token.Identifier)
-		errorOut(firstWord, "expected identifier");
-	
 	lexemes = lexemes[1 .. $];
+	
 	auto selector = firstWord.content.idup;
 	immutable(Lexeme)[][] arguments;
 	
