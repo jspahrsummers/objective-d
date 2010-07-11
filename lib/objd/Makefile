@@ -2,7 +2,6 @@
 OBJD_SOURCES = mobject.dm
 
 # runtime sources
-# TODO: objc.d causes problems; libobjd needs to not depend on libobjc
 SOURCES = hash.d objc.d runtime.d types.d $(OBJD_SOURCES:.dm=.d)
 
 # generated runtime "header" files

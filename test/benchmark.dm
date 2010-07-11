@@ -28,8 +28,7 @@ import std.stdio;
 import objd.mobject;
 import objd.runtime;
 
-// TODO: fix this so the space after the number is unnecessary
-enum BENCHMARK_TIMES = 10_000_000 ;
+enum BENCHMARK_TIMES = 10_000_000;
 
 __gshared id instance;
 __gshared Class function (Class, SEL) classIMP;
