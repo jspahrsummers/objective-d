@@ -35,10 +35,14 @@ export D_OBJCFLAGS=-L-lobjc -L-framework -LFoundation -L-framework -LAppKit
 # to accurately compare timings vs. Objective-C, this turns off type safety
 BENCHMARK_FLAGS=$(DFLAGS) -O -inline -release -version=unsafe
 
-.PHONY: all benchmark check clean compiler install lib test
+.PHONY: all benchmark check clean compiler dist distclean install lib test
 
 all: | compiler lib
 check: test
+
+distclean: clean
+dist: | check distclean
+	tar -cj --exclude ".*" --exclude "*.bz2" * > objective-d-`date -j "+%F"`.tar.bz2
 
 clean:
 	cd compiler && $(MAKE) clean
