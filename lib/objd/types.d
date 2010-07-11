@@ -302,7 +302,7 @@ enum id nil = null;
 package bool TypeConvertibleToTypeInfo(T)(immutable TypeInfo info) {
 	foreach (type; TypeAndImplicitConversions!T) {
 		debug {
-			//writefln("checking typeinfo %s against implicit type %s from type %s", cast(TypeInfo)info, typeid(type), typeid(T));
+			writefln("checking typeinfo %s against implicit type %s from type %s", cast(TypeInfo)info, typeid(type), typeid(T));
 		}
 		
 		if (info == cast(immutable)typeid(type))
@@ -341,8 +341,29 @@ package bool TypeInfoConvertibleToType(T)(immutable TypeInfo info) {
 }
 
 package template TypeAndImplicitConversions(T) {
-	alias TypeTuple!(Unqual!(OriginalType!T), ImplicitConversionTargets!(Unqual!(OriginalType!T))) TypeAndImplicitConversions;
+	alias TypeTuple!(
+		Unqual!(OriginalType!T), DeepImplicitConversionTargets!(Unqual!(OriginalType!T))
+	) TypeAndImplicitConversions;
 }
+
+package template DeepImplicitConversionTargets(T)
+//	if (!isArray(T))
+{
+	alias ImplicitConversionTargets!(T) DeepImplicitConversionTargets;
+}
+
+// TODO: implicit conversion of immutable(char)[] to const(char)[] and similar
+//package template DeepImplicitConversionTargets(T)
+//	if (isArray(T))
+//{
+//	alias TypeTuple!(ImplicitConversionTargets!(T), ArrayUnqual!(typeof(T[0]), 1)) DeepImplicitConversionTargets;
+//}
+//
+//package template ArrayUnqual(T)
+//	if (isArray(T))
+//{
+//	
+//}
 
 package bool ClassInfoInheritsFromClassInfo (immutable TypeInfo_Class info, immutable TypeInfo_Class cmpinfo) {
 	if (info.base is null)

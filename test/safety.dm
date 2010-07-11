@@ -125,10 +125,12 @@ void main () {
 	
 	writeln("--- Checking that const works properly");
 	
+	objd_msgSend!(void)(MyClass, @selector(somethingElse:), cast(const)str);
+	
 	// TODO: none of these tests pass!
-	//objd_msgSend!(void)(MyClass, @selector(somethingElse:), "foobar");
-	//objd_msgSend!(void)(MyClass, @selector(somethingElse:), assumeUnique(str));
-	//objd_msgSend!(void)(MyClass, @selector(somethingElse:), str);
+//	objd_msgSend!(void)(MyClass, @selector(somethingElse:), "foobar");
+//	objd_msgSend!(void)(MyClass, @selector(somethingElse:), assumeUnique(str));
+//	objd_msgSend!(void)(MyClass, @selector(somethingElse:), str);
 	
 	writefln("%s passed!", __FILE__);
 }
