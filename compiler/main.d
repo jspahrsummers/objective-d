@@ -31,8 +31,8 @@ import processor;
 
 enum COMPILER_MAJOR_VERSION = 0;
 enum COMPILER_MINOR_VERSION = 1;
-enum COMPILER_PATCH_VERSION = 0;
-enum COMPILER_VERSION = COMPILER_MAJOR_VERSION.stringof ~ "." ~ COMPILER_MINOR_VERSION.stringof ~ "." ~ COMPILER_PATCH_VERSION.stringof;
+enum COMPILER_PATCH_VERSION = 1;
+enum COMPILER_VERSION = "0.1b1";
 
 immutable string defaultOutputFilename = "main.d";
 
