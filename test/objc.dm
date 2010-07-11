@@ -36,9 +36,10 @@ version (objc_compat) {
 		auto pool = [NSAutoreleasePool new];
 		assert(pool !is null);
 		
-		// this won't work just comparing the result (TODO: it could)
-		// Objective-C objects are always wrapped in new D objects
-		writeln("--- Invoking [[pool class] description]");
+		writeln("--- Testing NSAutoreleasePool class equality with isEqual:");
+		assert([pool class] == NSAutoreleasePool);
+		
+		writeln("--- Invoking [[pool class] description] and validating result");
 		assert([pool class].toString() == "NSAutoreleasePool");
 		
 		writeln("--- Invoking [[NSString alloc] init]");
