@@ -36,3 +36,7 @@ public:
 void errorOut(T...)(immutable Lexeme lexeme, T args) {
 	throw new ParseException(format("%s:%s near %s: ", lexeme.file, lexeme.line, lexeme.content) ~ format(args) ~ "\n");
 }
+
+void errorOut(T...)(string file, ulong line, T args) {
+	throw new ParseException(format("%s:%s: ", file, line) ~ format(args) ~ "\n");
+}

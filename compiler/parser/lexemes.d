@@ -38,11 +38,11 @@ package immutable(Lexeme) newToken (dstring content) {
 }
 
 package immutable(Lexeme) newIdentifier (dstring content) {
-	return new Lexeme(Token.Identifier, content, null, 0);
+	return new Lexeme(Token.Identifier, content);
 }
 
 package immutable(Lexeme) newString (dstring content) {
-	return new Lexeme(Token.String, content, null, 0);
+	return new BacktickStringLexeme(content, 'd', null, 0);
 }
 
 immutable struct Parameter {

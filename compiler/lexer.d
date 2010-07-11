@@ -23,10 +23,12 @@
  * SOFTWARE.
  */
 
+import std.array;
 import std.contracts;
 import std.ctype;
 import std.stdio;
 import std.string;
+import std.traits;
 import std.uni;
 import exceptions;
 
@@ -35,117 +37,6 @@ enum Token {
 	
 	/* Identifiers and D keywords */
 	Identifier,
-	
-	/+
-	/* D keywords */
-	D_abstract		 ,
-	D_alias			 ,
-	D_align			 ,
-	D_asm			 ,
-	D_assert		 ,
-	D_auto			 ,
-	D_body			 ,
-	D_bool			 ,
-	D_break			 ,
-	D_byte			 ,
-	D_case			 ,
-	D_cast			 ,
-	D_catch			 ,
-	D_cdouble		 ,
-	D_cent			 ,
-	D_cfloat		 ,
-	D_char			 ,
-	D_class			 ,
-	D_const			 ,
-	D_continue		 ,
-	D_creal			 ,
-	D_dchar			 ,
-	D_debug			 ,
-	D_default		 ,
-	D_delegate		 ,
-	D_delete		 ,
-	D_deprecated	 ,
-	D_do			 ,
-	D_double		 ,
-	D_else			 ,
-	D_enum			 ,
-	D_export		 ,
-	D_extern		 ,
-	D_false			 ,
-	D_final			 ,
-	D_finally		 ,
-	D_float			 ,
-	D_for			 ,
-	D_foreach		 ,
-	D_foreach_reverse,
-	D_function		 ,
-	D_goto			 ,
-	D_idouble		 ,
-	D_if			 ,
-	D_ifloat		 ,
-	D_immutable		 ,
-	D_import		 ,
-	D_in			 ,
-	D_inout			 ,
-	D_int			 ,
-	D_interface		 ,
-	D_invariant		 ,
-	D_ireal			 ,
-	D_is			 ,
-	D_lazy			 ,
-	D_long			 ,
-	D_macro			 ,
-	D_mixin			 ,
-	D_module		 ,
-	D_new			 ,
-	D_nothrow		 ,
-	D_null			 ,
-	D_out			 ,
-	D_override		 ,
-	D_package		 ,
-	D_pragma		 ,
-	D_private		 ,
-	D_protected		 ,
-	D_public		 ,
-	D_pure			 ,
-	D_real			 ,
-	D_ref			 ,
-	D_return		 ,
-	D_scope			 ,
-	D_shared		 ,
-	D_short			 ,
-	D_static		 ,
-	D_struct		 ,
-	D_super			 ,
-	D_switch		 ,
-	D_synchronized	 ,
-	D_template		 ,
-	D_this			 ,
-	D_throw			 ,
-	D_true			 ,
-	D_try			 ,
-	D_typedef		 ,
-	D_typeid		 ,
-	D_typeof		 ,
-	D_ubyte			 ,
-	D_ucent			 ,
-	D_uint			 ,
-	D_ulong			 ,
-	D_union			 ,
-	D_unittest		 ,
-	D_ushort		 ,
-	D_version		 ,
-	D_void			 ,
-	D_volatile		 ,
-	D_wchar			 ,
-	D_while			 ,
-	D_with			 ,
-	D___FILE__		 ,
-	D___LINE__		 ,
-	D___gshared		 ,
-	D___thread		 ,
-	D___traits		 ,
-	+/
 	
 	/* Objective-D keywords (prefixed with an @) */
 	ObjD_category,
@@ -347,21 +238,7 @@ enum Token {
 	TildeEq,
 }
 
-private enum SkipType {
-	None,
-	LineComment,
-	NestedComment,
-	BlockComment,
-	String,
-	WYSIWYGString,
-	HexString,
-	DelimitedString,
-	TokenString,
-	CharLiteral
-}
-
 private Token[dstring] tokenLookupTable;
-//private Token[dstring] dKeywordTable;
 private Token[dstring] objectiveDKeywordTable;
 
 static this () {
@@ -431,120 +308,6 @@ static this () {
 	
 	tokenLookupTable.rehash;
 	
-	/+
-	dKeywordTable = [
-		"abstract" : Token.D_abstract,
-		"alias" : Token.D_alias,
-		"align" : Token.D_align,
-		"asm" : Token.D_asm,
-		"assert" : Token.D_assert,
-		"auto" : Token.D_auto,
-		"body" : Token.D_body,
-		"bool" : Token.D_bool,
-		"break" : Token.D_break,
-		"byte" : Token.D_byte,
-		"case" : Token.D_case,
-		"cast" : Token.D_cast,
-		"catch" : Token.D_catch,
-		"cdouble" : Token.D_cdouble,
-		"cent" : Token.D_cent,
-		"cfloat" : Token.D_cfloat,
-		"char" : Token.D_char,
-		"class" : Token.D_class,
-		"const" : Token.D_const,
-		"continue" : Token.D_continue,
-		"creal" : Token.D_creal,
-		"dchar" : Token.D_dchar,
-		"debug" : Token.D_debug,
-		"default" : Token.D_default,
-		"delegate" : Token.D_delegate,
-		"delete" : Token.D_delete,
-		"deprecated" : Token.D_deprecated,
-		"do" : Token.D_do,
-		"double" : Token.D_double,
-		"else" : Token.D_else,
-		"enum" : Token.D_enum,
-		"export" : Token.D_export,
-		"extern" : Token.D_extern,
-		"false" : Token.D_false,
-		"final" : Token.D_final,
-		"finally" : Token.D_finally,
-		"float" : Token.D_float,
-		"for" : Token.D_for,
-		"foreach" : Token.D_foreach,
-		"foreach_reverse" : Token.D_foreach_reverse,
-		"function" : Token.D_function,
-		"goto" : Token.D_goto,
-		"idouble" : Token.D_idouble,
-		"if" : Token.D_if,
-		"ifloat" : Token.D_ifloat,
-		"immutable" : Token.D_immutable,
-		"import" : Token.D_import,
-		"in" : Token.D_in,
-		"inout" : Token.D_inout,
-		"int" : Token.D_int,
-		"interface" : Token.D_interface,
-		"invariant" : Token.D_invariant,
-		"ireal" : Token.D_ireal,
-		"is" : Token.D_is,
-		"lazy" : Token.D_lazy,
-		"long" : Token.D_long,
-		"macro" : Token.D_macro,
-		"mixin" : Token.D_mixin,
-		"module" : Token.D_module,
-		"new" : Token.D_new,
-		"nothrow" : Token.D_nothrow,
-		"null" : Token.D_null,
-		"out" : Token.D_out,
-		"override" : Token.D_override,
-		"package" : Token.D_package,
-		"pragma" : Token.D_pragma,
-		"private" : Token.D_private,
-		"protected" : Token.D_protected,
-		"public" : Token.D_public,
-		"pure" : Token.D_pure,
-		"real" : Token.D_real,
-		"ref" : Token.D_ref,
-		"return" : Token.D_return,
-		"scope" : Token.D_scope,
-		"shared" : Token.D_shared,
-		"short" : Token.D_short,
-		"static" : Token.D_static,
-		"struct" : Token.D_struct,
-		"super" : Token.D_super,
-		"switch" : Token.D_switch,
-		"synchronized" : Token.D_synchronized,
-		"template" : Token.D_template,
-		"this" : Token.D_this,
-		"throw" : Token.D_throw,
-		"true" : Token.D_true,
-		"try" : Token.D_try,
-		"typedef" : Token.D_typedef,
-		"typeid" : Token.D_typeid,
-		"typeof" : Token.D_typeof,
-		"ubyte" : Token.D_ubyte,
-		"ucent" : Token.D_ucent,
-		"uint" : Token.D_uint,
-		"ulong" : Token.D_ulong,
-		"union" : Token.D_union,
-		"unittest" : Token.D_unittest,
-		"ushort" : Token.D_ushort,
-		"version" : Token.D_version,
-		"void" : Token.D_void,
-		"volatile" : Token.D_volatile,
-		"wchar" : Token.D_wchar,
-		"while" : Token.D_while,
-		"with" : Token.D_with,
-		"__FILE__" : Token.D___FILE__,
-		"__LINE__" : Token.D___LINE__,
-		"__gshared" : Token.D___gshared,
-		"__thread" : Token.D___thread,
-		"__traits" : Token.D___traits
-	];
-	
-	dKeywordTable.rehash;
-	+/
-	
 	// all of these should be considered prefixed with @
 	objectiveDKeywordTable = [
 		"category" : Token.ObjD_category,
@@ -606,12 +369,11 @@ public:
 			break;
 		
 		case Token.String:
-			// todo: make sure strings are escaped properly
-			outFD.writef("`%s`", content);
-			break;
+			// strings have their own implementation of writeToFile()
+			// should never get here
+			assert(0);
 		
 		case Token.Character:
-			// todo: make sure characters are escaped properly
 			outFD.writef("'%s'", content);
 			break;
 			
@@ -634,11 +396,106 @@ public:
 	}
 }
 
+abstract class StringLexeme : Lexeme {
+public:
+	dchar postfix;
+	
+	this (dstring content, dchar postfix = 'c', string file = null, ulong line = 0)
+	in {
+		assert(postfix == 'c' || postfix == 'w' || postfix == 'd');
+	} body {
+		super(Token.String, content, file, line);
+		this.postfix = postfix;
+	}
+}
+
+immutable class BacktickStringLexeme : StringLexeme {
+public:
+	this (ParameterTypeTuple!(super.__ctor) args) {
+		super(args);
+	}
+	
+	override void writeToFile (ref File outFD) const {
+		assert(content !is null);
+		outFD.writef("`%s`", content);
+	}
+}
+
+immutable class WysiwygStringLexeme : StringLexeme {
+public:
+	this (ParameterTypeTuple!(super.__ctor) args) {
+		super(args);
+	}
+	
+	override void writeToFile (ref File outFD) const {
+		assert(content !is null);
+		outFD.writef("r\"%s\"", content);
+	}
+}
+
+immutable class DoubleQuotedStringLexeme : StringLexeme {
+public:
+	this (ParameterTypeTuple!(super.__ctor) args) {
+		super(args);
+	}
+	
+	override void writeToFile (ref File outFD) const {
+		assert(content !is null);
+		outFD.writef("\"%s\"", content);
+	}
+}
+
+immutable class HexStringLexeme : StringLexeme {
+public:
+	this (ParameterTypeTuple!(super.__ctor) args) {
+		super(args);
+	}
+	
+	override void writeToFile (ref File outFD) const {
+		assert(content !is null);
+		outFD.writef("x\"%s\"", content);
+	}
+}
+
+immutable class DelimitedStringLexeme : StringLexeme {
+public:
+	dstring openingDelimiter;
+	dstring closingDelimiter;
+	
+	this (dstring content, dstring openingDelimiter, dstring closingDelimiter, dchar postfix = 'c', string file = null, ulong line = 0)
+	in {
+		assert(openingDelimiter !is null && openingDelimiter.length > 0);
+		assert(closingDelimiter !is null && closingDelimiter.length > 0);
+	} body {
+		super(content, postfix, file, line);
+		this.openingDelimiter = openingDelimiter;
+		this.closingDelimiter = closingDelimiter;
+	}
+	
+	override void writeToFile (ref File outFD) const {
+		assert(content !is null);
+		outFD.writef("q\"%s%s%s\"", openingDelimiter, content, closingDelimiter);
+	}
+}
+
+immutable class TokenStringLexeme : StringLexeme {
+public:
+	this (dstring content, string file = null, ulong line = 0) {
+		// token strings shouldn't have postfixes
+		super(content, ' ', file, line);
+	}
+	
+	override void writeToFile (ref File outFD) const {
+		assert(content !is null);
+		outFD.writef("q{%s}", content);
+	}
+}
+
 immutable(Lexeme[]) lex (string file) {
 	/* Initialize state variables */
-	File inFD;
+	File* inFD;
 	try {
-		inFD = File(file, "rt");
+		inFD = new File(file, "rt");
 	} catch {
 		stderr.writefln("Could not open file \"%s\" for reading.", file);
 		return null;
@@ -650,246 +507,155 @@ immutable(Lexeme[]) lex (string file) {
 	dchar[] buffer;
 	ulong line = 1;
 	
-	dstring current;
+	auto current = Appender!(dstring)();
 	Token currentToken;
-	dchar lastChar;
-	dchar closingDelimiter;
-	dchar openingDelimiter;
-	
-	uint nesting = 0;
-	SkipType skip;
+	dchar lastChar = '\0';
 	
 	/* Helper nested functions */
-	void errorOut(T...)(T args) {
-		throw new ParseException(format("%s:%s: ", file, line) ~ format(args) ~ "\n");
-	}
-	
 	void createLexeme () {
-		if (current != "") {
+		if (lastChar != '\0') {
+			current.put(lastChar);
+			lastChar = '\0';
+		}
+		
+		if (current.data.length > 0) {
 			assert(currentToken != Token.Unknown);
 			
-			lexemes ~= new Lexeme(currentToken, current.idup, file, line);
+			lexemes ~= new Lexeme(currentToken, current.data.idup, file, line);
 			currentToken = Token.Unknown;
 		
 			//writefln("created lexeme: %s", lexemes[$ - 1].description);
 		}
 		
-		current.length = 0;
-		skip = SkipType.None;
+		current.clear();
 	}
 	
-	void prependStringLexeme () {
-		assert(currentToken == Token.String);
-		
-		if (lexemes[$ - 1].token == Token.String) {
-			// TODO: handle issues with escapes
-			current = lexemes[$ - 1].content ~ current;
-			lexemes.length = lexemes.length - 1;
-		}
+	dstring getMore (out string f, out ulong l) {
+		f = file;
+		if (inFD.readln(buffer)) {
+			l = ++line;
+			return assumeUnique(buffer);
+		} else
+			return null;
 	}
 	
 	/* Parse loop */
-	dchar ch;
-	while (inFD.readln(buffer)) {
-		for (size_t i = 0;i < buffer.length;++i, lastChar = ch) {
-			ch = buffer[i];
-			if (lastChar == '\n') {
-				++line;
-			}
-			
-			final switch (skip) {
-			case SkipType.None:
-				break;
-			
-			case SkipType.LineComment:
-				if (ch == '\n')
-					skip = SkipType.None;
+	string dummyFile;
+	ulong dummyLine;
+	dstring str;
+	while ((str = getMore(dummyFile, dummyLine)) !is null) {
+		assert(dummyFile == file);
+		assert(dummyLine == line);
+		
+		dstring getMoreUsingStr (out string f, out ulong l) {
+			if (str !is null) {
+				f = file;
+				l = line;
 				
-				continue;
-				
-			case SkipType.NestedComment:
-				if (lastChar == '+' && ch == '/') {
-					if (--nesting == 0)
-						skip = SkipType.None;
-				}
-				
-				continue;
-			
-			case SkipType.BlockComment:
-				if (lastChar == '*' && ch == '/') {
-					skip = SkipType.None;
-				}
-				
-				continue;
-			
-			case SkipType.String:
-				if (lastChar != '\\' && ch == '"') {
-					prependStringLexeme();
-					createLexeme();
-					continue;
-				} else if (ch == '\\' && lastChar == '\\') {
-					// hide escaped backslashes to avoid parsing problems
-					ch = '\0';
-				}
-				
-				current ~= ch;
-				continue;
-			
-			case SkipType.WYSIWYGString:
-				if (ch == closingDelimiter) {
-					createLexeme();
-					continue;
-				}
-				
-				current ~= ch;
-				continue;
-			
-			case SkipType.HexString:
-				if (ch == '"') {
-					createLexeme();
-					continue;
-				}
-				
-				current ~= ch;
-				continue;
-			
-			case SkipType.DelimitedString:
-				if (openingDelimiter == '\0') {
-					// set up delimiters
-					openingDelimiter = ch;
-					switch (openingDelimiter) {
-					case '[':
-						closingDelimiter = ']';
-						break;
-					case '(':
-						closingDelimiter = ')';
-						break;
-					case '<':
-						closingDelimiter = '>';
-						break;
-					case '{':
-						closingDelimiter = '}';
-						break;
-					default:
-						closingDelimiter = openingDelimiter;
-					}
-				}
-				
-				if (ch == openingDelimiter && openingDelimiter != closingDelimiter) {
-					++nesting;
-				} else if (lastChar == closingDelimiter) {
-					if (closingDelimiter != openingDelimiter) {
-						if (nesting == 0)
-							errorOut("mismatched string delimiters %s and %s", openingDelimiter, closingDelimiter);
-					
-						--nesting;
-					}
-					
-					if (ch == '"') {
-						if (nesting != 0)
-							errorOut("mismatched quotes and string delimiters %s and %s", openingDelimiter, closingDelimiter);
-					
-						createLexeme();
-						continue;
-					}
-				}
-				
-				current ~= ch;
-				continue;
-			
-			case SkipType.TokenString:
-				if (ch == '{')
-					++nesting;
-				else if (ch == '}') {
-					if (--nesting == 0) {
-						createLexeme();
-						continue;
-					}
-				}
-				
-				current ~= ch;
-				continue;
-			
-			case SkipType.CharLiteral:
-				if (lastChar != '\\' && ch == '\'') {
-					createLexeme();
-					continue;
-				} else if (ch == '\\' && lastChar == '\\') {
-					// hide escaped backslashes to avoid parsing problems
-					ch = '\0';
-				}
-				
-				current ~= ch;
-				continue;
-			}
-			
-			//writefln("%s:%s: %s", line, i, ch);
-			
+				auto ret = str;
+				str = null;
+				return ret;
+			} else
+				return getMore(f, l);
+		}
+	
+	lexLooper:
+		while (str.length > 0) {
+			auto ch = str[0];
+		
 			switch (ch) {
 			case '"':
-				createLexeme();
-				
+				str = str[1 .. $];
 				switch (lastChar) {
 				case 'r':
-					skip = SkipType.WYSIWYGString;
+					lastChar = '\0';
+					createLexeme();
+					
+					dstring move;
+					lexemes ~= lexWysiwygString(&getMoreUsingStr, move);
+					str = move;
 					break;
+					
 				case 'x':
-					skip = SkipType.HexString;
+					lastChar = '\0';
+					createLexeme();
+					
+					dstring move;
+					lexemes ~= lexHexString(&getMoreUsingStr, move);
+					str = move;
 					break;
+					
 				case 'q':
-					skip = SkipType.DelimitedString;
+					lastChar = '\0';
+					createLexeme();
 					
-					// don't know this yet
-					openingDelimiter = '\0';
-					
+					dstring move;
+					lexemes ~= lexDelimitedString(&getMoreUsingStr, move);
+					str = move;
 					break;
+					
 				default:
-					skip = SkipType.String;
+					createLexeme();
+					
+					dstring move;
+					lexemes ~= lexDoubleQuotedString(&getMoreUsingStr, move);
+					str = move;
 				}
 				
-				nesting = 1;
-				currentToken = Token.String;
-				continue;
+				goto lexLooper;
 			
 			case '\'':
 				createLexeme();
-				skip = SkipType.CharLiteral;
-				currentToken = Token.Character;
-				continue;
+				str = str[1 .. $];
+					
+				dstring move;
+				lexemes ~= lexCharLiteral(&getMoreUsingStr, move);
+				str = move;
+				
+				goto lexLooper;
 			
 			case '/':
 				if (lastChar == '/') {
-					// remove the previous forward slash from the token
-					current = current[0 .. $ - 1];
+					lastChar = '\0';
 					createLexeme();
+					str = str[1 .. $];
 					
-					skip = SkipType.LineComment;
-					continue;
+					dstring move;
+					lexLineComment(&getMoreUsingStr, move);
+					str = move;
+					
+					assert(str.length == 0);
+					goto lexLooper;
 				}
 				
 				break;
 			
 			case '*':
 				if (lastChar == '/') {
-					// remove the previous forward slash from the token
-					current = current[0 .. $ - 1];
+					lastChar = '\0';
 					createLexeme();
+					str = str[1 .. $];
 					
-					skip = SkipType.BlockComment;
-					continue;
+					dstring move;
+					lexBlockComment(&getMoreUsingStr, move);
+					str = move;
+					
+					goto lexLooper;
 				}
 				
 				break;
 			
 			case '+':
 				if (lastChar == '/') {
-					// remove the previous forward slash from the token
-					current = current[0 .. $ - 1];
+					lastChar = '\0';
 					createLexeme();
+					str = str[1 .. $];
 					
-					skip = SkipType.NestedComment;
-					nesting = 1;
-					continue;
+					dstring move;
+					lexNestedComment(&getMoreUsingStr, str);
+					str = move;
+					
+					goto lexLooper;
 				}
 				
 				break;
@@ -898,43 +664,444 @@ immutable(Lexeme[]) lex (string file) {
 				;
 			}
 			
-			auto newContent = current ~ ch;
-			auto symbolToken = tokenForString(current);
-			auto token = tokenForString(newContent);
-			
-			if (token == Token.Unknown && symbolToken != Token.Unknown) {
-				assert(symbolToken == currentToken);
-			
-				// adding this latest character would make an invalid token
-				// we have now maximally munched
-				createLexeme();
+			if (lastChar != '\0') {
+				current.put(lastChar);
+				lastChar = '\0';
 			}
 			
 			if (isspace(ch)) {
 				// space always forcibly delimits lexemes
 				createLexeme();
-				continue;
-			} else if (current.length == 0) {
-				if (ch == '_' || isUniAlpha(ch))
-					currentToken = Token.Identifier;
-				else if (isdigit(ch))
-					currentToken = Token.Number;
-			} else if (currentToken == Token.Identifier) {
-				if (ch != '_' && !isdigit(ch) && !isUniAlpha(ch))
-					// looks like we're on to the next part of an expression
-					createLexeme();
+				str = str[1 .. $];
+				continue lexLooper;
 			}
 			
-			current ~= ch;
-				
-			// TODO: currently numbers will misbehave if followed by operators (with no whitespace)
-			if (currentToken != Token.Identifier && currentToken != Token.Number) {
-				currentToken = tokenForString(current);
+			auto newContent = current.data ~ ch;
+			currentToken = tokenForString(current.data);
+			auto token = tokenForString(newContent);
+			
+			if (token == Token.Unknown && currentToken != Token.Unknown) {
+				// adding this latest character would make an invalid token
+				// we have now maximally munched
+				createLexeme();
+				currentToken = tokenForString([ ch ]);
 			}
+			
+			if (current.data.length == 0) {
+				if (ch == '_' || isUniAlpha(ch)) {
+					lexemes ~= lexIdentifier(str, file, line);
+					goto lexLooper;
+				} else if (isdigit(ch)) {
+					lexemes ~= lexNumberLiteral(str, file, line);
+					goto lexLooper;
+				} else
+					currentToken = tokenForString([ ch ]);
+			}
+			
+			lastChar = ch;
+			str = str[1 .. $];
 		}
 	}
 	
 	return keywordify(assumeUnique(lexemes));
+}
+
+void lexLineComment (dstring delegate (out string, out ulong) getMore, out dstring left) {
+	dstring str;
+	string file;
+	ulong line;
+	
+	while ((str = getMore(file, line)) !is null) {
+		foreach (i, ch; str) {
+			if (ch == '\n') {
+				left = str[i + 1 .. $];
+				return;
+			}
+		}
+	}
+	
+	left = null;
+}
+
+void lexBlockComment (dstring delegate (out string, out ulong) getMore, out dstring left) {
+	dstring str;
+	string file;
+	ulong line;
+	
+	dchar lastChar;
+	while ((str = getMore(file, line)) !is null) {
+		foreach (i, ch; str) {
+			if (ch == '/' && lastChar == '*') {
+				left = str[i + 1 .. $];
+				return;
+			}
+			
+			lastChar = ch;
+		}
+	}
+	
+	errorOut(file, line, "expected */ before end of file");
+}
+
+void lexNestedComment (dstring delegate (out string, out ulong) getMore, out dstring left) {
+	dstring str;
+	string file;
+	ulong line;
+	
+	dchar lastChar;
+	while ((str = getMore(file, line)) !is null) {
+		foreach (i, ch; str) {
+			if (ch == '/' && lastChar == '+') {
+				left = str[i + 1 .. $];
+				return;
+			} else if (ch == '+' && lastChar == '/') {
+				str = str[i + 1 .. $];
+				lexBlockComment((out string f, out ulong l){
+					if (str !is null) {
+						auto ret = str;
+						str = null;
+						
+						f = file;
+						l = line;
+						return ret;
+					} else
+						return getMore(f, l);
+				}, left);
+				
+				return;
+			}
+			
+			lastChar = ch;
+		}
+	}
+	
+	errorOut(file, line, "expected +/ before end of file");
+}
+
+immutable(StringLexeme) lexWysiwygString (dstring delegate (out string, out ulong) getMore, out dstring left) {
+	dstring str;
+	string file;
+	ulong line;
+	
+	dchar lastChar;
+	auto content = Appender!(dstring)();
+	while ((str = getMore(file, line)) !is null) {
+		foreach (i, ch; str) {
+			if (ch == '"' && lastChar != '\\') {
+				str = str[i + 1 .. $];
+				
+				dchar postfix = 'c';
+				if (str.length > 0 && (str[0] == 'c' || str[0] == 'w' || str[0] == 'd')) {
+					postfix = str[0];
+					left = str[1 .. $];
+				} else
+					left = str;
+				
+				return new WysiwygStringLexeme(content.data.idup, postfix, file, line);
+			}
+			
+			lastChar = ch;
+			content.put(ch);
+		}
+	}
+	
+	errorOut(file, line, "expected closing \" for WYSIWYG string before end of file");
+	assert(0);
+}
+
+immutable(StringLexeme) lexBacktickString (dstring delegate (out string, out ulong) getMore, out dstring left) {
+	dstring str;
+	string file;
+	ulong line;
+	
+	auto content = Appender!(dstring)();
+	while ((str = getMore(file, line)) !is null) {
+		foreach (i, ch; str) {
+			if (ch == '`') {
+				str = str[i + 1 .. $];
+				
+				dchar postfix = 'c';
+				if (str.length > 0 && (str[0] == 'c' || str[0] == 'w' || str[0] == 'd')) {
+					postfix = str[0];
+					left = str[1 .. $];
+				} else
+					left = str;
+				
+				return new BacktickStringLexeme(content.data.idup, postfix, file, line);
+			}
+			
+			content.put(ch);
+		}
+	}
+	
+	errorOut(file, line, "expected closing ` for WYSIWYG string before end of file");
+	assert(0);
+}
+
+immutable(StringLexeme) lexDoubleQuotedString (dstring delegate (out string, out ulong) getMore, out dstring left) {
+	dstring str;
+	string file;
+	ulong line;
+	
+	dchar lastChar;
+	auto content = Appender!(dstring)();
+	while ((str = getMore(file, line)) !is null) {
+		foreach (i, ch; str) {
+			if (ch == '"' && lastChar != '\\') {
+				str = str[i + 1 .. $];
+				
+				dchar postfix = 'c';
+				if (str.length > 0 && (str[0] == 'c' || str[0] == 'w' || str[0] == 'd')) {
+					postfix = str[0];
+					left = str[1 .. $];
+				} else
+					left = str;
+				
+				return new DoubleQuotedStringLexeme(content.data.idup, postfix, file, line);
+			}
+			
+			lastChar = ch;
+			content.put(ch);
+		}
+	}
+	
+	errorOut(file, line, "expected closing \" for WYSIWYG string before end of file");
+	assert(0);
+}
+
+immutable(StringLexeme) lexHexString (dstring delegate (out string, out ulong) getMore, out dstring left) {
+	dstring str;
+	string file;
+	ulong line;
+	
+	dchar lastChar;
+	auto content = Appender!(dstring)();
+	while ((str = getMore(file, line)) !is null) {
+		foreach (i, ch; str) {
+			if (ch == '"' && lastChar != '\\') {
+				str = str[i + 1 .. $];
+				
+				dchar postfix = 'c';
+				if (str.length > 0 && (str[0] == 'c' || str[0] == 'w' || str[0] == 'd')) {
+					postfix = str[0];
+					left = str[1 .. $];
+				} else
+					left = str;
+				
+				return new HexStringLexeme(content.data.idup, postfix, file, line);
+			}
+			
+			lastChar = ch;
+			content.put(ch);
+		}
+	}
+	
+	errorOut(file, line, "expected closing \" for WYSIWYG string before end of file");
+	assert(0);
+}
+
+immutable(StringLexeme) lexDelimitedString (dstring delegate (out string, out ulong) getMore, out dstring left) {
+	dstring str;
+	string file;
+	ulong line;
+	
+	auto openingDelimiter = Appender!(dstring)();
+	dstring closingDelimiter;
+	uint nesting = 0;
+	
+	auto content = Appender!(dstring)();
+	
+delimiterLoop:
+	while ((str = getMore(file, line)) !is null) {
+		foreach (i, ch; str) {
+			if (openingDelimiter.data.length > 0) {
+				if (ch == '\n') {
+					content.put(ch);
+					
+					closingDelimiter = openingDelimiter.data.idup;
+					break delimiterLoop;
+				} else if (ch != '_' && !isdigit(ch) && !isUniAlpha(ch))
+					errorOut(file, line, "invalid character %s in string delimiter", ch);
+				
+				openingDelimiter.put(ch);
+			} else if (ch == '_' || isUniAlpha(ch)) {
+				openingDelimiter.put(ch);
+			} else {
+				openingDelimiter.put(ch);
+				
+				switch (ch) {
+				case '(':
+					nesting = 1;
+					closingDelimiter = ")";
+					break;
+					
+				case '[':
+					nesting = 1;
+					closingDelimiter = "]";
+					break;
+					
+				case '<':
+					nesting = 1;
+					closingDelimiter = ">";
+					break;
+					
+				case '{':
+					nesting = 1;
+					closingDelimiter = "}";
+					break;
+					
+				default:
+					closingDelimiter = openingDelimiter.data.idup;
+				}
+				
+				break delimiterLoop;
+			}
+		}
+	}
+	
+	// for simplicity in checking
+	closingDelimiter ~= "\"";
+	
+	if (str.length == 0)
+		str = getMore(file, line);
+	
+stringLoop:
+	while (str !is null) {
+		foreach (i, ch; str) {
+			if (str.length - i < closingDelimiter.length)
+				break stringLoop;
+			
+			if (nesting <= 1 && str[i .. closingDelimiter.length] == closingDelimiter) {
+				str = str[i + closingDelimiter.length .. $];
+				
+				dchar postfix = 'c';
+				if (str.length > 0 && (str[0] == 'c' || str[0] == 'w' || str[0] == 'd')) {
+					postfix = str[0];
+					left = str[1 .. $];
+				} else
+					left = str;
+				
+				return new DelimitedStringLexeme(content.data.idup, openingDelimiter.data.idup, closingDelimiter[0 .. $ - 1], postfix, file, line);
+			} else if (nesting >= 1 && ch == openingDelimiter.data[0])
+				++nesting;
+			
+			content.put(ch);
+		}
+		
+		str = getMore(file, line);
+	}
+	
+	errorOut(file, line, "expected closing %s\" for delimited string before end of file", closingDelimiter);
+	assert(0);
+}
+
+immutable(StringLexeme) lexTokenString (dstring delegate (out string, out ulong) getMore, out dstring left) {
+	dstring str;
+	string file;
+	ulong line;
+	
+	auto content = Appender!(dstring)();
+	uint nesting = 1;
+	while ((str = getMore(file, line)) !is null) {
+		foreach (i, ch; str) {
+			if (ch == '}') {
+				if (--nesting == 0) {
+					left = str[i + 1 .. $];
+					return new TokenStringLexeme(content.data.idup, file, line);
+				}
+			} else if (ch == '{')
+				++nesting;
+			
+			content.put(ch);
+		}
+	}
+	
+	errorOut(file, line, "expected closing } for token string before end of file");
+	assert(0);
+}
+
+immutable(Lexeme) lexCharLiteral (dstring delegate (out string, out ulong) getMore, out dstring left) {
+	dstring str;
+	string file;
+	ulong line;
+	
+	dchar lastChar;
+	auto content = Appender!(dstring)();
+	while ((str = getMore(file, line)) !is null) {
+		foreach (i, ch; str) {
+			if (ch == '\'' && lastChar != '\\') {
+				left = str[i + 1 .. $];
+				return new Lexeme(Token.Character, content.data.idup, file, line);
+			}
+			
+			lastChar = ch;
+			content.put(ch);
+		}
+	}
+	
+	errorOut(file, line, "expected closing ' for character literal before end of file");
+	assert(0);
+}
+
+immutable(Lexeme) lexIdentifier (ref dstring str, string file, ulong line) {
+	assert(str[0] == '_' || isUniAlpha(str[0]));
+	
+	auto content = Appender!(dstring)();
+	while (str.length > 0) {
+		auto ch = str[0];
+		if (ch != '_' && !isdigit(ch) && !isUniAlpha(ch))
+			break;
+		
+		content.put(ch);
+		str = str[1 .. $];
+	}
+	
+	return new Lexeme(Token.Identifier, content.data.idup, file, line);
+}
+
+immutable(Lexeme) lexNumberLiteral (ref dstring str, string file, ulong line) {
+	assert(isdigit(str[0]));
+	
+	dchar lastChar;
+	auto content = Appender!(dstring)();
+
+stringLoop:
+	while (str.length > 0) {
+		auto ch = str[0];
+		switch (ch) {
+		case 'x':
+		case 'X':
+			break;
+		
+		case 'l':
+		case 'L':
+		case 'i':
+		case 'p':
+		case 'P':
+		case 'u':
+		case 'U':
+		case '.':
+		case '_':
+			break;
+		
+		case '+':
+		case '-':
+			if (lastChar != 'e' && lastChar != 'E' && lastChar != 'p' && lastChar != 'P')
+				break stringLoop;
+			
+			break;
+		
+		default:
+			if (!isxdigit(ch))
+				break stringLoop;
+		}
+		
+		content.put(ch);
+		lastChar = ch;
+		str = str[1 .. $];
+	}
+	
+	return new Lexeme(Token.Number, content.data.idup, file, line);
 }
 
 immutable(Lexeme[]) keywordify (immutable Lexeme[] lexemes) {
@@ -965,7 +1132,7 @@ immutable(Lexeme[]) keywordify (immutable Lexeme[] lexemes) {
 				}
 			}
 			
-			// fall through
+			goto default;
 			
 		default:
 			output ~= lexeme;
