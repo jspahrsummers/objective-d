@@ -1,6 +1,9 @@
 The Objective-D Programming Language
 ------------------------------------
 
+The most up-to-date version of this document can be found (nicely formatted) at
+<http://code.google.com/p/objective-d/wiki/ObjectiveD>.
+
 Objective-D comprises dynamic (runtime-driven) additions to the D programming
 language. It is a strict superset of D, meaning that any piece of valid D code
 is also by definition valid Objective-D code. Objective-D source code files are

@@ -115,7 +115,7 @@ public:
 	}
 	
 	bool opEquals (ref const Method m) const {
-		return this.selector == m.selector && this.returnType == m.returnType && this.argumentTypes == m.argumentTypes && this.implementation == m.implementation;
+		return this.selector == m.selector && this.returnType == m.returnType && this.argumentTypes == m.argumentTypes;
 	}
 	
 	override string toString () const {
@@ -160,6 +160,17 @@ public:
 	
 	void addProtocol (immutable Protocol p) {
 		protocols ~= p;
+	}
+	
+	bool conformsToProtocol (immutable Protocol aProtocol) const {
+		foreach (const Class cls; this) {
+			foreach (immutable Protocol p; cls.protocols) {
+				if (p == aProtocol)
+					return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	void replaceMethod(T, A...)(SEL name, T function (id, SEL, A) impl) {
@@ -334,6 +345,9 @@ public:
 	}
 	
 	bool conformsToProtocol (immutable Protocol other) immutable {
+		if (this is other)
+			return true;
+	
 		// to conform to 'other', we must require at least all the methods it does
 		foreach (immutable Method otherMethod; other.requiredMethods) {
 			bool found = false;
@@ -352,6 +366,6 @@ public:
 	}
 	
 	bool opEquals (immutable Protocol other) immutable {
-		return this.requiredMethods == other.requiredMethods && this.optionalMethods == other.optionalMethods;
+		return this is other || (this.requiredMethods == other.requiredMethods && this.optionalMethods == other.optionalMethods);
 	}
 }
