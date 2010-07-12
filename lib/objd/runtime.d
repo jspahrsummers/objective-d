@@ -243,15 +243,17 @@ version (unsafe) {
 }
 
 version (objc_compat) {
-	objd.objc.ObjCType!T objd_msgSend(T, U : objd.objc.id, bool safe = false, A...)(U self, SEL cmd, A args)
+	objd.objc.ObjCType!T objd_msgSend(T, bool superSend = false, U : objd.objc.id, bool safe = false, A...)(U self, SEL cmd, A args)
 	in {
 		assert(self !is null);
 	} body {
-		return objd.objc.msgSend!(T, A)(self, cmd, args);
+		static assert(superSend == false, "Objective-C messages should never get sent to super");
+	
+		return objd.objc.msgSend!(T, false, A)(self, cmd, args);
 	}
 }
 
-T objd_msgSend(T, U, bool safe = SAFETY_DEFAULT, A...)(U self, SEL cmd, A args) {
+T objd_msgSend(T, bool superSend = false, U, bool safe = SAFETY_DEFAULT, A...)(U self, SEL cmd, A args) {
 	if (self is null) {
 		static if (is(T == void))
 			return;
@@ -268,7 +270,11 @@ T objd_msgSend(T, U, bool safe = SAFETY_DEFAULT, A...)(U self, SEL cmd, A args) 
 	
 	assert(cmd != 0);
 	
-	Class cls = self.isa;
+	static if (superSend)
+		Class cls = self.isa.superclass;
+	else
+		Class cls = self.isa;
+	
 	assert(cls !is null);
 	
 	debug {

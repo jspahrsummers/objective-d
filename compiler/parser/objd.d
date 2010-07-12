@@ -418,10 +418,11 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	output ~= newToken("{");
 	
 	auto next = lexemes[0];
+	immutable(Lexeme)[] inheritsL;
 	if (next.token == Token.Colon) {
 		// class inherits from a superclass
 		lexemes = lexemes[1 .. $];
-		auto inheritsL = parsePrimaryExpression(lexemes);
+		inheritsL = parsePrimaryExpression(lexemes);
 		
 		//  super("ClassName", SuperclassName);
 		output ~= newIdentifier("super");
@@ -518,12 +519,27 @@ immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
 	// } /* class MetaClassName */
 	output ~= newToken("}");
 	
-	// class ClassNameInst : objd.runtime.Instance {
+	// class ClassNameInst :
 	output ~= newIdentifier("class");
 	output ~= classInstance;
 	output ~= newToken(":");
-	output ~= objdNamespace();
-	output ~= newIdentifier("Instance");
+	
+	if (inheritsL is null) {
+		// objd.runtime.Instance
+		output ~= objdNamespace();
+		output ~= newIdentifier("Instance");
+	} else {
+		// SuperclassInst
+		if (inheritsL.length > 1)
+			output ~= inheritsL[0 .. $ - 1];
+		
+		if (inheritsL[$ - 1].token != Token.Identifier)
+			errorOut(inheritsL[$ - 1], "expected superclass identifier");
+		
+		output ~= newIdentifier(classInstanceName(inheritsL[$ - 1].content));
+	}
+	
+	// {
 	output ~= newToken("{");
 	
 	output ~= vars;
@@ -807,7 +823,13 @@ immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	}
 	
 	// receiver of the message
-	auto receiver = parseAssignExpression(lexemes);
+	immutable(Lexeme)[] receiver = parseAssignExpression(lexemes, true);
+	bool superSend;
+	if (receiver.length == 1 && receiver[0].token == Token.Identifier && receiver[0].content == "super") {
+		superSend = true;
+		receiver = [ newIdentifier("self") ];
+	} else
+		superSend = false;
 	
 	if (lexemes[0].token != Token.Identifier) {
 		// this seems to be an array literal of some kind
@@ -849,6 +871,12 @@ immutable(Lexeme[]) parseMessageSend (ref immutable(Lexeme)[] lexemes) {
 	output ~= newToken("(");
 	output ~= newString(selectorToIdentifier(selector) ~ "_rettype");
 	output ~= newToken(")");
+	
+	if (superSend) {
+		// , true
+		output ~= newToken(",");
+		output ~= newIdentifier("true");
+	}
 	
 	// )(receiver,
 	output ~= newToken(")");
