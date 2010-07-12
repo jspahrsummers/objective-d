@@ -32,6 +32,7 @@ import parser.lexemes;
 import parser.statements;
 import std.contracts;
 import std.conv;
+import std.string;
 import std.utf;
 
 enum dstring OBJD_METHOD_PREFIX = "msg_";
@@ -51,11 +52,15 @@ pure auto selectorToIdentifier (dstring selector, dstring prefix = "_objd_sel_")
 }
 
 pure auto metaClassName (dstring name) {
-	return "Meta" ~ name;
+	return "_Meta" ~ name;
 }
 
 pure auto classInstanceName (dstring name) {
-	return name ~ "Inst";
+	return "_" ~ name ~ "Inst";
+}
+
+pure auto protocolInstanceName (dstring name) {
+	return "_Protocol" ~ name;
 }
 
 immutable(Lexeme) registerSelector (dstring selector) {
@@ -274,6 +279,110 @@ immutable(Lexeme[]) parseCategory (ref immutable(Lexeme)[] lexemes) {
 	}
 	
 	return assumeUnique(output);
+}
+
+immutable(Lexeme[]) parseProtocol (ref immutable(Lexeme)[] lexemes) {
+	immutable(Lexeme)[] output;
+
+	assert(0);
+/+
+	auto protocolNameL = lexemes[0];
+	lexemes = lexemes[1 .. $];
+	if (protocolNameL.token != Token.Identifier)
+		errorOut(protocolNameL, "expected protocol name");
+	
+	if (lexemes[0].token == Token.Less) {
+		// TODO: parse protocol list
+	}
+	
+	auto protocolName = protocolNameL.content;
+	auto protocolInstance = newIdentifier(protocolInstanceName(protocolName));
+	
+	// includes @end
+	auto methods = parseMethodDefinitions(lexemes);
+	
+	// static this () {
+	output ~= newIdentifier("static");
+	output ~= newIdentifier("this");
+	output ~= newToken("(");
+	output ~= newToken(")");
+	output ~= newToken("{");
+	
+	foreach (method; methods) {
+		// this is inside a module constructor, so we can add methods
+		// ClassName.
+		output ~= classNameL;
+		output ~= newToken(".");
+		
+		if (method.classMethod) {
+			// isa.
+			output ~= newIdentifier("isa");
+			output ~= newToken(".");
+		}
+		
+		// replaceMethod(
+		output ~= newIdentifier("replaceMethod");
+		output ~= newToken("(");
+		
+		// sel_registerName("name")
+		output ~= registerSelector(method.selector);
+		
+		// , function return_type (
+		output ~= newToken(",");
+		output ~= newIdentifier("function");
+		output ~= method.returnType;
+		output ~= newToken("(");
+		
+		if (method.classMethod)
+			// MetaClassName
+			output ~= metaClass;
+		else
+			// ClassNameInst
+			output ~= classInstance;
+			
+		// self, SEL cmd
+		output ~= newIdentifier("self");
+		output ~= newToken(",");
+		output ~= newIdentifier("SEL");
+		output ~= newIdentifier("cmd");
+		
+		foreach (ref param; method.parameters) {
+			// , parameter_type parameter_name
+			output ~= newToken(",");
+			output ~= param.type;
+			output ~= newIdentifier(param.name);
+		}
+		
+		// ) /* function */
+		output ~= newToken(")");
+		
+		output ~= method.implementationBody;
+		
+		// ) /* addMethod */ ;
+		output ~= newToken(")");
+		output ~= newToken(";");
+	}
+	
+	// } /* static this () */
+	output ~= newToken("}");
+	
+	foreach (method; methods) {
+		// mixin _objDAliasTypeToSelectorReturnType!(method_return_type, "selector:name:", "_objd_sel_methodNameWith__rettype");
+		output ~= newIdentifier("mixin");
+		output ~= newIdentifier("_objDAliasTypeToSelectorReturnType");
+		output ~= newToken("!");
+		output ~= newToken("(");
+		output ~= method.returnType;
+		output ~= newToken(",");
+		output ~= newString(method.selector);
+		output ~= newToken(",");
+		output ~= newString(selectorToIdentifier(method.selector) ~ "_rettype");
+		output ~= newToken(")");
+		output ~= newToken(";");
+	}
+	
+	return assumeUnique(output);
++/
 }
 
 immutable(Lexeme[]) parseClass (ref immutable(Lexeme)[] lexemes) {
