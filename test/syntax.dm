@@ -44,6 +44,20 @@ import objd.mobject;
 
 @end
 
+@class MySubclass : MyClass {
+
+}
+
+- (uint)incrementTest {
+	return ++self.test;
+}
+
+- (int)nonIDReturnType {
+	return [super nonIDReturnType] + 15;
+}
+
+@end
+
 void main () {
 	writeln("Testing Objective-D syntax...");
 	
@@ -81,6 +95,16 @@ void main () {
 	
 	writeln("--- Validating returned value of method that does not return id");
 	assert([obj nonIDReturnType] == 5);
+	
+	writeln("--- Invoking [MySubclass new]");
+	id obj2 = [MySubclass new];
+	assert(obj2 !is null);
+	
+	writeln("--- Incrementing instance variable inherited from superclass");
+	assert([obj2 incrementTest] == 1);
+	
+	writeln("--- Validating that overridden method can still be invoked by subclass");
+	assert([obj2 nonIDReturnType] == 20);
 	
 	writefln("%s passed!", __FILE__);
 }

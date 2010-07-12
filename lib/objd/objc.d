@@ -56,7 +56,12 @@ version (objc_compat) {
 			alias objc_selector* SEL;
 			
 			/* Message sending */
-			objc_id objc_msgSend (objc_id, SEL, ...);
+			objc_id objc_msgSend            (objc_id, SEL, ...);
+			objc_id objc_msgSendSuper       (objc_id, SEL, ...);
+			double  objc_msgSend_fpret      (objc_id, SEL, ...);
+			double  objc_msgSendSuper_fpret (objc_id, SEL, ...);
+			void    objc_msgSend_stret      (void*, objc_id, SEL, ...);
+			void    objc_msgSendSuper_stret (void*, objc_id, SEL, ...);
 			
 			/* Reflection */
 			const(char)* class_getName (objc_Class);
@@ -116,20 +121,44 @@ version (objc_compat) {
 		}
 	}
 	
-	ObjCType!T msgSend(T, A...)(id self, objd.types.SEL cmd, A args) {
+	ObjCType!T msgSend(T, bool superSend = false, A...)(id self, objd.types.SEL cmd, A args) {
 		static if (is(T == objd.types.id) || is(T : id)) {
-			auto funcptr = cast(FuncPtr!(objc_id, objc_id, SEL, A))&objc_msgSend;
+			static if (superSend)
+				auto funcptr = cast(FuncPtr!(objc_id, objc_id, SEL, A))&objc_msgSendSuper;
+			else
+				auto funcptr = cast(FuncPtr!(objc_id, objc_id, SEL, A))&objc_msgSend;
 			
 			auto ret = funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
 			return new id(ret);
+		} else if (is(T == struct)) {
+			static if (superSend)
+				auto funcptr = cast(FuncPtr!(void, void*, objc_id, SEL, A))&objc_msgSendSuper_stret;
+			else
+				auto funcptr = cast(FuncPtr!(void, void*, objc_id, SEL, A))&objc_msgSend_stret;
+			
+			T structure;
+			
+			funcptr(&structure, self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
+			return structure;
+		} else if (isFloatingPoint!(T)) {
+			static if (superSend)
+				auto funcptr = cast(FuncPtr!(double, objc_id, SEL, A))&objc_msgSendSuper_fpret;
+			else
+				auto funcptr = cast(FuncPtr!(double, objc_id, SEL, A))&objc_msgSend_fpret;
+			
+			auto ret = funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
+			return cast(T)ret;
 		} else {
-			auto funcptr = cast(FuncPtr!(T, objc_id, SEL, A))&objc_msgSend;
+			static if (superSend)
+				auto funcptr = cast(FuncPtr!(objc_id, objc_id, SEL, A))&objc_msgSendSuper;
+			else
+				auto funcptr = cast(FuncPtr!(objc_id, objc_id, SEL, A))&objc_msgSend;
 			
 			static if (is(T == void))
 				funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
 			else {
 				auto ret = funcptr(self.ptr, sel_registerName(toStringz(objd.runtime.sel_getName(cmd))), args);
-				return ret;
+				return cast(T)ret;
 			}
 		}
 	}
