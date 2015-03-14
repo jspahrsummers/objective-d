@@ -1,0 +1,5 @@
+The Objective-C programming language finds a sweet spot in the development world because of its clever mixture of static and dynamic language features. As a strict superset of C, it uses special syntax and a lightweight runtime to provide fully dynamic (Smalltalk-style) object-oriented programming capabilities.
+
+Objective-D attempts to do the same on top of the D programming language. D is much more advanced than C, and already provides object-oriented programming (among many other features). The idea behind Objective-D is to add more dynamic runtime functionality to an already stellar programming language. The ultimate goal is to unify the dynamic and static object models as well, for performance when it's needed and flexibility when it's not.
+
+Additionally, Objective-D will aim to be interoperable with Objective-C code (though source-incompatible). Such attempts will only be made when it is not at the expense of D-based functionality.
